@@ -1,0 +1,319 @@
+-- LobbyUI: mobile-first lobby surface against mock local state.
+-- No server wiring yet — Backend's frame contract lands first.
+-- Layout: thumb-reach bottom vote buttons, top status, center crown area.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local SCREEN_WIDTH = 1280
+local SCREEN_HEIGHT = 720
+local BOTTOM_MARGIN = 80
+local BUTTON_SIZE = UDim2.fromOffset(280, 96)
+local BUTTON_SPACING = 24
+
+local function createCorner(radius: number?): UICorner
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius or 12)
+	return corner
+end
+
+local function createStroke(color: Color3, thickness: number): UIStroke
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Thickness = thickness
+	return stroke
+end
+
+local function createTextLabel(
+	parent: Instance,
+	text: string,
+	position: UDim2,
+	size: UDim2,
+	textSize: number,
+	anchorPoint: Vector2?,
+	visible: boolean?
+): TextLabel
+	local label = Instance.new("TextLabel")
+	label.Name = "TextLabel"
+	label.Parent = parent
+	label.Position = position
+	label.Size = size
+	label.AnchorPoint = anchorPoint or Vector2.new(0.5, 0.5)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextScaled = true
+	label.TextSize = textSize
+	label.Font = Enum.Font.SourceSansBold
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0.7
+	label.TextWrapped = true
+	label.Visible = visible ~= false
+	return label
+end
+
+local function createButton(parent: Instance, text: string, position: UDim2): TextButton
+	local button = Instance.new("TextButton")
+	button.Name = "VoteButton"
+	button.Parent = parent
+	button.Position = position
+	button.Size = BUTTON_SIZE
+	button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	button.BackgroundTransparency = 0.1
+	button.Font = Enum.Font.SourceSansBold
+	button.Text = text
+	button.TextScaled = true
+	button.TextSize = 36
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.AutoButtonColor = true
+
+	createCorner(12).Parent = button
+	createStroke(Color3.fromRGB(255, 200, 0), 2).Parent = button
+
+	return button
+end
+
+local function createPlayerSlot(parent: Instance, index: number): Frame
+	local slot = Instance.new("Frame")
+	slot.Name = "PlayerSlot_" .. index
+	slot.Parent = parent
+	slot.Size = UDim2.new(1, -20, 0, 56)
+	slot.BackgroundTransparency = 1
+
+	createCorner(8).Parent = slot
+	createStroke(Color3.fromRGB(100, 100, 100), 1).Parent = slot
+
+	local avatar = Instance.new("ImageLabel")
+	avatar.Name = "Avatar"
+	avatar.Parent = slot
+	avatar.Position = UDim2.new(0, 8, 0.5, 0)
+	avatar.Size = UDim2.fromOffset(40, 40)
+	avatar.AnchorPoint = Vector2.new(0, 0.5)
+	avatar.BackgroundTransparency = 1
+	avatar.Image = ""
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "NameLabel"
+	nameLabel.Parent = slot
+	nameLabel.Position = UDim2.new(0, 56, 0.5, 0)
+	nameLabel.Size = UDim2.new(1, -120, 1, 0)
+	nameLabel.AnchorPoint = Vector2.new(0, 0.5)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = "..."
+	nameLabel.TextScaled = true
+	nameLabel.TextSize = 20
+	nameLabel.Font = Enum.Font.SourceSansBold
+	nameLabel.TextColor3 = Color3.new(1, 1, 1)
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.TextWrapped = true
+
+	local crownIcon = Instance.new("ImageLabel")
+	crownIcon.Name = "CrownIcon"
+	crownIcon.Parent = slot
+	crownIcon.Position = UDim2.new(1, -28, 0.5, 0)
+	crownIcon.Size = UDim2.fromOffset(24, 24)
+	crownIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	crownIcon.BackgroundTransparency = 1
+	crownIcon.Image = ""
+	crownIcon.Visible = false
+
+	return slot
+end
+
+local LobbyUI = {}
+
+function LobbyUI.new(mockState)
+	local self = setmetatable({}, { __index = LobbyUI })
+
+	self._mockState = mockState
+	self._connections = {}
+
+	self._screenGui = Instance.new("ScreenGui")
+	self._screenGui.Name = "LobbyUI"
+	self._screenGui.ResetOnSpawn = false
+	self._screenGui.IgnoreGuiInset = true
+	self._screenGui.Parent = PlayerGui
+
+	self:_build()
+	self:_bindState()
+
+	return self
+end
+
+function LobbyUI:_build()
+	local root = self._screenGui
+	root.Size = UDim2.fromOffset(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+	local background = Instance.new("Frame")
+	background.Name = "Background"
+	background.Parent = root
+	background.Size = UDim2.fromScale(1, 1)
+	background.BackgroundColor3 = Color3.fromRGB(15, 20, 40)
+	createCorner(0).Parent = background
+
+	createTextLabel(root, "PARTY PANIC", UDim2.new(0.5, 0, 0, 40), UDim2.fromOffset(400, 60), 36, nil, true).Name =
+		"Title"
+
+	createTextLabel(root, "Players: 0 / 12", UDim2.new(0.02, 0, 0, 96), UDim2.fromOffset(240, 48), 24, nil, true).Name =
+		"PlayerCount"
+
+	local playerListContainer = Instance.new("Frame")
+	playerListContainer.Name = "PlayerList"
+	playerListContainer.Parent = root
+	playerListContainer.Position = UDim2.new(0.02, 0, 0, 156)
+	playerListContainer.Size = UDim2.fromOffset(280, 320)
+	playerListContainer.BackgroundTransparency = 1
+
+	createCorner(12).Parent = playerListContainer
+
+	local listBackground = Instance.new("Frame")
+	listBackground.Name = "ListBackground"
+	listBackground.Parent = playerListContainer
+	listBackground.Size = UDim2.fromScale(1, 1)
+	listBackground.BackgroundColor3 = Color3.fromRGB(30, 35, 60)
+	listBackground.BorderSizePixel = 0
+	createCorner(12).Parent = listBackground
+
+	self._playerSlots = {}
+	for i = 1, 12 do
+		local slot = createPlayerSlot(playerListContainer, i)
+		slot.Position = UDim2.fromOffset(10, 8 + (i - 1) * 60)
+		table.insert(self._playerSlots, slot)
+	end
+
+	createTextLabel(root, "Starting in 10s", UDim2.new(0.5, 0, 0, 540), UDim2.fromOffset(360, 56), 32, nil, true).Name =
+		"CountdownLabel"
+
+	local crownArea = Instance.new("Frame")
+	crownArea.Name = "CrownArea"
+	crownArea.Parent = root
+	crownArea.Position = UDim2.new(0.5, 0, 0.5, -20)
+	crownArea.Size = UDim2.fromOffset(160, 160)
+	crownArea.AnchorPoint = Vector2.new(0.5, 0.5)
+	crownArea.BackgroundTransparency = 0.8
+	crownArea.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+	crownArea.BorderSizePixel = 0
+	createCorner(80).Parent = crownArea
+
+	self._crownIcon = Instance.new("ImageLabel")
+	self._crownIcon.Name = "CrownIcon"
+	self._crownIcon.Parent = crownArea
+	self._crownIcon.Size = UDim2.fromScale(0.5, 0.5)
+	self._crownIcon.Position = UDim2.fromScale(0.5, 0.5)
+	self._crownIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	self._crownIcon.BackgroundTransparency = 1
+	self._crownIcon.Image = ""
+
+	createTextLabel(crownArea, "Winner", UDim2.new(0.5, 0, 1, 12), UDim2.fromOffset(160, 36), 20, nil, true).Name =
+		"CrownLabel"
+
+	local coinContainer = Instance.new("Frame")
+	coinContainer.Name = "CoinContainer"
+	coinContainer.Parent = root
+	coinContainer.Position = UDim2.new(0.98, 0, 0, 12)
+	coinContainer.Size = UDim2.fromOffset(200, 56)
+	coinContainer.AnchorPoint = Vector2.new(1, 0)
+	coinContainer.BackgroundTransparency = 0.2
+	coinContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+	createCorner(12).Parent = coinContainer
+
+	createStroke(Color3.fromRGB(255, 200, 0), 2).Parent = coinContainer
+
+	self._coinLabel =
+		createTextLabel(coinContainer, "999", UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(180, 48), 36, nil, true)
+	self._coinLabel.Name = "CoinLabel"
+	self._coinLabel.Text = "0"
+
+	local coinIcon = Instance.new("ImageLabel")
+	coinIcon.Name = "CoinIcon"
+	coinIcon.Parent = coinContainer
+	coinIcon.Position = UDim2.new(1, -16, 0.5, 0)
+	coinIcon.Size = UDim2.fromOffset(32, 32)
+	coinIcon.AnchorPoint = Vector2.new(1, 0.5)
+	coinIcon.BackgroundTransparency = 1
+	coinIcon.Image = ""
+
+	local voteButtonContainer = Instance.new("Frame")
+	voteButtonContainer.Name = "VoteButtons"
+	voteButtonContainer.Parent = root
+	voteButtonContainer.Position = UDim2.new(0.5, 0, 1, -BOTTOM_MARGIN)
+	voteButtonContainer.Size =
+		UDim2.fromOffset(3 * (BUTTON_SIZE.X.Offset + BUTTON_SPACING) - BUTTON_SPACING, BUTTON_SIZE.Y.Offset)
+	voteButtonContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+	voteButtonContainer.BackgroundTransparency = 1
+
+	for i = 1, 3 do
+		local button = createButton(
+			voteButtonContainer,
+			"Map " .. i,
+			UDim2.fromOffset((i - 1) * (BUTTON_SIZE.X.Offset + BUTTON_SPACING), 0)
+		)
+		button.Name = "VoteButton" .. i
+		button.Visible = true
+	end
+end
+
+function LobbyUI:_bindState()
+	local function render()
+		if not self._screenGui or not self._screenGui.Parent then
+			return
+		end
+
+		local state = self._mockState
+
+		local playerCountLabel = self._screenGui:FindFirstChild("PlayerCount")
+		if playerCountLabel then
+			playerCountLabel.Text = "Players: " .. #state.players .. " / 12"
+		end
+
+		for i, slot in ipairs(self._playerSlots) do
+			local player = state.players[i]
+			if player then
+				slot.Visible = true
+				local nameLabel = slot:FindFirstChild("NameLabel")
+				if nameLabel then
+					nameLabel.Text = player.name
+				end
+				local crownIcon = slot:FindFirstChild("CrownIcon")
+				if crownIcon then
+					crownIcon.Visible = player.isWinner
+				end
+			else
+				slot.Visible = false
+			end
+		end
+
+		local countdownLabel = self._screenGui:FindFirstChild("CountdownLabel")
+		if countdownLabel then
+			countdownLabel.Text = "Starting in " .. math.max(0, state.countdown) .. "s"
+		end
+
+		if self._coinLabel then
+			self._coinLabel.Text = tostring(state.coins)
+		end
+	end
+
+	render()
+
+	local renderConn = RunService.RenderStepped:Connect(render)
+	table.insert(self._connections, renderConn)
+
+	local stateConn = self._mockState.onUpdate:Connect(render)
+	table.insert(self._connections, stateConn)
+end
+
+function LobbyUI:destroy()
+	for _, conn in ipairs(self._connections) do
+		conn:Disconnect()
+	end
+	self._connections = {}
+
+	if self._screenGui then
+		self._screenGui:Destroy()
+		self._screenGui = nil
+	end
+end
+
+return LobbyUI
