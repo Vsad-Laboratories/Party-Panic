@@ -45,7 +45,7 @@ Party Panic (Roblox place, built by Rojo from this repo)
 | Feature coding | Kilo Code | works in-repo against `src/` |
 | Autonomous tasks | Jules | GitHub issues → PRs; must pass CI first |
 | 3D assets | Meshy / Tripo / Rodin | low-poly, <5k tris, single palette texture |
-| Agent roles/skills | Operator will assign | pending |
+| Agent roles/skills | herdr fleet plan (2026-09-23): **Control Agent** (talk/discuss/decide, like this session) + role agents — UI designer, Backend, Code Reviewer; Roblox/Luau skills installed via skills.sh | under construction |
 
 Game loop: lobby → vote → 60–90 s round → elimination/scoring → coins → repeat; winner wears crown in lobby.
 
@@ -57,6 +57,8 @@ Monetization (locked): cosmetics + battle pass + power/perk gamepasses + product
 - ✅ **CI verified green** (run 35851129161, 9 s): `rokit install --no-trust-check` (official CI flag — trust prompts are interactive-only) → selene std → stylua --check → selene → rojo build → `PartyPanic.rbxlx` artifact uploaded. Local gates also green (0 lint errors, instances verified in place file).
 - ✅ **Vinegar WORKS (2026-09-23): reinstalled 1.9.4 → Roblox Studio launches to home screen.** Fix: `~/.var/app/org.vinegarhq.Vinegar/config/vinegar/config.toml` → `[studio] renderer = "Vulkan"` (YouTube-tutorial-sourced). **My earlier "silicon ceiling" verdict was wrong** — `intel_hasvk` ICD exposes Ivy Bridge HD 4000 at Vulkan 1.3.354 (read from ICD manifests); the first-run clientcrash (RBXCRASH-Undefined, exit 67, DXVK "No adapters found") did not recur after clean reinstall + renderer setting — original cause was the botched first-run install. Sober 1.7.1 kept. Logs: `~/.var/app/org.vinegarhq.Vinegar/cache/vinegar/logs/`.
 - ✅ **Path A locked (2026-09-23): no-Studio loop** — push → CI build → Open Cloud publish (`POST https://apis.roblox.com/universes/v1/{universeId}/places/{placeId}/versions?versionType=Published`, scope `universe-places:write`, .rbxlx as data-binary, official docs verified) → playtest in Sober. CI `publish` job exists but **skips until repo is configured**: secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`, `ROBLOX_PLACE_ID`.
+- ✅ **Repo ARMED (2026-09-23):** vars `ROBLOX_UNIVERSE_ID=10767732474`, `ROBLOX_PLACE_ID=118657294629389` + secret `ROBLOX_API_KEY` all set. Identity verified via Open Cloud `GET /cloud/v2/universes/…` with the key → displayName **"Party Panic"**, PRIVATE, root place matches (donation place untouched). Publish job now fires on every push to `main`. ⚠️ Dashboard flags worth reviewing (target = 9–13, PRD): `voiceChatEnabled: true`, `ageRating: AGE_RATING_13_PLUS`.
+- ⏳ **PI-Desktop / PI Agent evaluation (2026-09-23):** name collides across ≥3 projects — leading candidate: **Pi Agent Desktop** (pi-desktop.app): local-first, Linux AppImage, bundles Pi Coding Agent 0.84 **and Herdr 0.8.2** (fleet UI over the multiplexer we already run). Alternative: vastsa/PI-Desktop (LGPL, Electron+Rust, A2A agent protocol, early preview). Standalone "PI Agent" CLI install likely unnecessary if desktop is chosen (runtime bundled). Decision pending Operator.
 - ⏳ **Rojo Studio plugin NOT installed yet** (manual step in Studio): https://www.roblox.com/library/96353449041057/Rojo-7-5-1 → then `rojo serve` in `~/Dev/Party Panic` + Connect = local hot-sync loop.
 - Known CI noise (not bugs): `actions/checkout@v4` / `upload-artifact@v4` Node 20 deprecation warning (forced onto Node 24, harmless); `ubuntu-latest` → Ubuntu 26 migration notice (Oct 2026).
 
