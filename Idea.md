@@ -17,12 +17,14 @@ The frame is fixed. Every new round is added as **data**, never as an edit to th
 - **Five rounds:** Floor Fall, Obstacle Sprint, Tag Blast, King of the Hill, Gold Rush
 - **Lobby:** queue, map voting, winner crown, coin balance
 - **Economy:** coin rewards + cosmetics shop shell
-- **Staged post-v1:** daily quests, 4-week battle pass seasons, rank tiers (Bronze → Crown), party bonus, squads, spectate, referral cosmetics (both players rewarded)
+- **Round feel:** eliminated players stay engaged (spectate camera, cheers, consolation) and still win something — micro-awards for best comeback, fastest finish, longest survival; visible status: streaks, titles, crown variants
+- **Social loop:** play-again/requeue, party + friend bonuses, invite rewards — the main growth engine
+- **Staged & gated:** daily quests, battle pass seasons (ships only once players demonstrably return), rank tiers (Bronze → Crown), squads, referral cosmetics (both players rewarded)
 
 ## Audience & success gates
 
 - Primary: kids 9–13, mobile-first — 30 fps floor on low-end Android; English v1, translation-ready
-- Week-4 gates: **D1 retention ≥ 30%**, **average session ≥ 8 min**
+- Launch gates (staged): first round starts < 30 s for 80%+ of joins · D1 ≥ 20% (30% = strong) · session ≥ 8 min · rematch ≥ 25% · crash rate < 2%
 - Privacy: Roblox Analytics events only; no custom data collection
 
 ## Monetization (locked direction)
@@ -42,7 +44,7 @@ Cosmetics-led: cosmetics + battle pass + capped power gamepasses/products; ads d
 |---|---|
 | Weeks 1–2 | Playable frame: lobby FSM, round contract, lobby UI shell — **landed**; first real round |
 | Weeks 3–7 | Rounds, UI, coins, shop shell, low-end mobile pass |
-| Weeks 8–10 | Battle pass S1, gamepasses/products, 3D + UI polish |
+| Weeks 8–10 | Daily quests + status systems, gamepasses/products, 3D + UI polish (battle pass ships post-cohort-proof) |
 | Weeks 11–12 | Analytics gates, retention tuning, public launch |
 
 Release cadence after v1: **cosmetics weekly, rounds monthly.**
