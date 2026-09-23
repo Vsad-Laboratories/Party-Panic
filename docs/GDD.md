@@ -27,6 +27,17 @@ Recorded warning: power gamepasses aimed at 9–13 risk review-score and retenti
 - Anti-spaghetti STOP rule + no-fluff rule live in `~/RULES.md` and `MastersEngineer.md` canonical sets (2 + 4 byte-identical copies).
 - Quality gate: nothing merges red — CI must pass before a PR is reviewed.
 
+## 3D asset pipeline (recorded 2026-09-23, terms verified same day)
+
+| Tool | Role | Verified free terms | Rule |
+|---|---|---|---|
+| Hunyuan 3D Global | volume engine (props, decor) | 20 gens/day (Tencent official); free tier CC BY 4.0 | caveats: quota may be a launch promo ("limited time" reported); confirm output rights in-account before monetizing |
+| Meshy | primary — characters, hero assets | 100 cr/mo ≈ 3 full PBR gens (30 cr each); free = CC BY 4.0, commercial OK with credit; rigging + preset anims free | attribution = one line in game description + credits panel |
+| Tripo | experimentation only | own terms contradict (pricing page: free = non-commercial; blog: CC BY 4.0) | **ambiguous rights never ship** — prototypes/placeholders only |
+
+- No paid tiers at v1 — free tiers suffice; revisit only if exclusivity needed (battle-pass hero items).
+- Anti-spaghetti applies to assets too: style bible (`docs/STYLE.md`) before mass generation — palette, <5k tris, stud scale, single texture. Mesh QA (tri/texture count) is a candidate CI script over `assets/*.obj`.
+
 ## Roadmap
 
 | Weeks | Deliverable |
