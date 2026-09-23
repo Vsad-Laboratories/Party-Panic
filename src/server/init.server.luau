@@ -1,2 +1,8 @@
--- Smoke bootstrap: proves rojo -> Studio sync end-to-end. Grows into the round state machine (sprint 1).
+-- Smoke bootstrap: proves rojo -> Studio sync end-to-end.
+-- Wires up the lobby state machine frame (sprint 1).
 print("[PartyPanic] server booted")
+
+local LobbyMachine = require(script.Parent.LobbyMachine)
+
+local machine = LobbyMachine.new()
+machine:start()
