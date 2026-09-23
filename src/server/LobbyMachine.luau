@@ -5,7 +5,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
-local PlaceholderRound = require(game.ServerScriptService.Server.rounds.PlaceholderRound)
+local RoundRegistry = require(game.ServerScriptService.Server.RoundRegistry)
 
 local LobbyMachine = {}
 LobbyMachine.__index = LobbyMachine
@@ -17,6 +17,7 @@ function LobbyMachine.new()
 	self.countdown = 0
 	self.tickAccumulator = 0
 	self.lastResult = nil
+	self.currentRoundName = Constants.DefaultRound
 	return self
 end
 
@@ -44,9 +45,10 @@ function LobbyMachine:_startRound()
 		players = self.players,
 		config = { duration = Constants.RoundDuration },
 	}
-	PlaceholderRound.setup(context)
-	self.lastResult = PlaceholderRound.play(context)
-	PlaceholderRound.cleanup(context)
+	local round = RoundRegistry.getRound(self.currentRoundName)
+	round.setup(context)
+	self.lastResult = round.play(context)
+	round.cleanup(context)
 	self.state = "Results"
 	print("[PartyPanic] round complete")
 end
@@ -54,7 +56,6 @@ end
 function LobbyMachine:_results()
 	local winner = self.lastResult and self.lastResult.winnerUserId
 	print("[PartyPanic] results shown — winner: " .. tostring(winner))
-	self.players = {}
 	self.lastResult = nil
 	self.state = "Waiting"
 	print("[PartyPanic] back to lobby (waiting for players)")

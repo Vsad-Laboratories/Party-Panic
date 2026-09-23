@@ -1,12 +1,15 @@
+--!strict
 -- PlaceholderRound: stub round conforming to RoundContract (src/shared/RoundContract).
 -- Resolves immediately. Replaced when Floor Fall lands in sprint 3.
+local RoundContract = require(game.ReplicatedStorage.Shared.RoundContract)
+
 local PlaceholderRound = {}
 
-function PlaceholderRound.setup(context)
+function PlaceholderRound.setup(context: RoundContract.RoundContext)
 	print("[PartyPanic] placeholder setup — " .. #context.players .. " players")
 end
 
-function PlaceholderRound.play(context)
+function PlaceholderRound.play(context: RoundContract.RoundContext): RoundContract.RoundResult?
 	local duration = context.config and context.config.duration or 0
 	print("[PartyPanic] placeholder play — duration=" .. duration .. "s")
 	return {
@@ -15,7 +18,7 @@ function PlaceholderRound.play(context)
 	}
 end
 
-function PlaceholderRound.cleanup(context)
+function PlaceholderRound.cleanup(context: RoundContract.RoundContext)
 	print("[PartyPanic] placeholder cleanup — " .. #context.players .. " players")
 end
 
