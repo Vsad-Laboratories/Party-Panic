@@ -9,6 +9,9 @@
 			"StarterPlayerScripts": {
 				"Client": { "$path": "src/client" }
 			}
+		},
+		"ReplicatedStorage": {
+			"Shared": { "$path": "src/shared" }
 		}
 	}
 }
