@@ -17,8 +17,9 @@ jobs:
       - name: Add rokit to PATH
         run: echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
 
+      # --no-trust-check: official CI flag; trust prompts are interactive-only
       - name: Install pinned tools
-        run: rokit install
+        run: rokit install --no-trust-check
 
       - name: Generate Roblox std for selene
         run: selene generate-roblox-std
