@@ -62,6 +62,6 @@ Monetization (locked): cosmetics + battle pass + power/perk gamepasses + product
 
 ## Next steps (in order)
 
-1. Operator setup for Path A: create experience (create.roblox.com/dashboard/creations) → copy Universe ID (thumbnail ⋯ menu) + Place ID (Places tab → URL) → create API key (create.roblox.com/dashboard/credentials) with **universe-places → Write** bound to the game → set repo secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`/`ROBLOX_PLACE_ID` → push → confirm `versionNumber` in the publish step → playtest in Sober.
+1. Operator setup for Path A — **one-time Studio bootstrap required** (verified 2026-09-23: web Create ends in "Open Roblox Studio" popup; Open Cloud Universes API has NO create endpoint — creation is Studio-only, on any Windows 10+/macOS machine, ~15 min): create + publish a Baseplate named "Party Panic" (keep Private) → back on web: copy Universe ID (thumbnail ⋯ menu) + Place ID (Places tab → URL) → create API key (create.roblox.com/dashboard/credentials) with **universe-places → Write** bound to the game → set repo secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`/`ROBLOX_PLACE_ID` → push → confirm `versionNumber` in the publish step → playtest in Sober. (Check dashboard first: if the account already owns any experience, reuse it — skips the Studio trip entirely.)
 2. Sprint 1–2: lobby + Floor Fall round (creates `src/rounds/`, round contract).
 3. Operator assigns agent roles/skills → wire into herdr panes.
