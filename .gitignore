@@ -10,3 +10,6 @@
 
 # selene Roblox API std (regenerated locally and in CI via `selene generate-roblox-std`)
 /roblox.yml
+
+# Secrets never committed — Operator credential file lives locally only
+Roblox API Key
