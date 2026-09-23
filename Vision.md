@@ -53,15 +53,15 @@ Monetization (locked): cosmetics + battle pass + power/perk gamepasses + product
 
 ## Current state (update on every session end)
 
-- ✅ Repo bootstrapped, pushed `eadc3c7`: Rojo project, lint/format configs, CI, GDD, Vision.
-- ✅ Local gates green: `stylua --check` OK, `selene` 0/0/0, `rojo build` OK (Server + Client instances verified in `.rbxlx`).
-- ❌ **GitHub Actions blocked: account billing/spending-limit error — job never ran, CI steps still unproven.** Fix `Settings → Billing & plans`, or make repo public (free Actions, exposes plan).
-- 🔄 Vinegar install on the SleekBook in progress — first real playtest of the smoke scripts (`[PartyPanic] server/client booted` in Output console).
-- ⏳ Open Cloud auto-publish step deliberately NOT added to CI yet — decide after testing-path question is answered (artifact download vs. API publish vs. local Studio via Vinegar).
+- ✅ Repo bootstrapped and **public** → GitHub Actions free. Pushes: `eadc3c7` bootstrap → `8f4f285` Vision.md → `b80fd80` CI fix.
+- ✅ **CI verified green** (run 35851129161, 9 s): `rokit install --no-trust-check` (official CI flag — trust prompts are interactive-only) → selene std → stylua --check → selene → rojo build → `PartyPanic.rbxlx` artifact uploaded. Local gates also green (0 lint errors, instances verified in place file).
+- 🔄 **Vinegar on the SleekBook:** Studio launched, first-launch package install in progress (slow first boot expected). NOT verified yet — mark verified only after `rojo serve` connects and the smoke prints (`[PartyPanic] server/client booted`) appear in Studio Output.
+- ⏳ Open Cloud auto-publish deliberately NOT added to CI — local Studio via Vinegar is now the likely primary loop; revisit only if Vinegar fails.
+- Known CI noise (not bugs): `actions/checkout@v4` / `upload-artifact@v4` Node 20 deprecation warning (forced onto Node 24, harmless); `ubuntu-latest` → Ubuntu 26 migration notice (Oct 2026).
 
 ## Next steps (in order)
 
-1. Resolve Actions billing → push a trivial change → verify CI actually goes green (watch for `rokit install` trust prompts in CI; fix empirically if they appear).
-2. Vinegar verification: Studio opens, `rojo serve` connects, smoke prints appear → local dev loop restored.
-3. Sprint 1–2: lobby + Floor Fall round (creates `src/rounds/`, round contract).
-4. Operator assigns agent roles/skills → wire into herdr panes.
+1. Vinegar proof: open built place or `rojo serve` → smoke prints in Output → local dev loop restored.
+2. Sprint 1–2: lobby + Floor Fall round (creates `src/rounds/`, round contract).
+3. Operator assigns agent roles/skills → wire into herdr panes.
+4. Deferred: Open Cloud publish step (only if artifact/local loop proves insufficient).
