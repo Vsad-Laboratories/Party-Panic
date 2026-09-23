@@ -40,7 +40,7 @@ Party Panic (Roblox place, built by Rojo from this repo)
 | Layer | Choice | Note |
 |---|---|---|
 | Repo | github.com/Vsad-Laboratories/Party-Panic, `main` | git-push-driven; every push = trackable change |
-| Local Studio | **Vinegar on HP Pavilion 14 SleekBook — EXPERIMENT IN PROGRESS, UNVERIFIED** | Linux box; no official browser Studio exists. Until Vinegar is proven, testing path = CI artifact `PartyPanic.rbxlx` |
+| Local Studio | **Vinegar on HP Pavilion 14 SleekBook — VERIFIED 2026-09-23: Studio launches** (fix: `[studio] renderer = "Vulkan"` in Vinegar config; earlier "silicon ceiling" verdict was wrong) | Linux box; no official browser Studio exists. CI artifact `PartyPanic.rbxlx` remains the fallback + publish source |
 | Agent multiplexer | herdr (v0.9.1 installed) | replaced OpenChamber — rejected 2026-09-23 |
 | Feature coding | Kilo Code | works in-repo against `src/` |
 | Autonomous tasks | Jules | GitHub issues → PRs; must pass CI first |
@@ -55,13 +55,13 @@ Monetization (locked): cosmetics + battle pass + power/perk gamepasses + product
 
 - ✅ Repo bootstrapped and **public** → GitHub Actions free. Pushes: `eadc3c7` bootstrap → `8f4f285` Vision.md → `b80fd80` CI fix.
 - ✅ **CI verified green** (run 35851129161, 9 s): `rokit install --no-trust-check` (official CI flag — trust prompts are interactive-only) → selene std → stylua --check → selene → rojo build → `PartyPanic.rbxlx` artifact uploaded. Local gates also green (0 lint errors, instances verified in place file).
-- ❌ **Vinegar: uninstalled + swept (2026-09-23), Sober 1.7.1 kept.** Root cause was a silicon ceiling: HD 4000 (Ivy Bridge) lacks Vulkan 1.3 → DXVK "No adapters found" → Studio clientcrash (RBXCRASH-Undefined, exit 67). Flatpak app, data, config, flatpakref all removed; zero residuals. "Open log" button was dead = Flatpak sandbox; logs had lived at `~/.var/app/org.vinegarhq.Vinegar/cache/vinegar/logs/`.
+- ✅ **Vinegar WORKS (2026-09-23): reinstalled 1.9.4 → Roblox Studio launches to home screen.** Fix: `~/.var/app/org.vinegarhq.Vinegar/config/vinegar/config.toml` → `[studio] renderer = "Vulkan"` (YouTube-tutorial-sourced). **My earlier "silicon ceiling" verdict was wrong** — `intel_hasvk` ICD exposes Ivy Bridge HD 4000 at Vulkan 1.3.354 (read from ICD manifests); the first-run clientcrash (RBXCRASH-Undefined, exit 67, DXVK "No adapters found") did not recur after clean reinstall + renderer setting — original cause was the botched first-run install. Sober 1.7.1 kept. Logs: `~/.var/app/org.vinegarhq.Vinegar/cache/vinegar/logs/`.
 - ✅ **Path A locked (2026-09-23): no-Studio loop** — push → CI build → Open Cloud publish (`POST https://apis.roblox.com/universes/v1/{universeId}/places/{placeId}/versions?versionType=Published`, scope `universe-places:write`, .rbxlx as data-binary, official docs verified) → playtest in Sober. CI `publish` job exists but **skips until repo is configured**: secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`, `ROBLOX_PLACE_ID`.
-- ⏳ Open Cloud auto-publish deliberately NOT added to CI — local Studio via Vinegar is now the likely primary loop; revisit only if Vinegar fails.
+- ⏳ **Rojo Studio plugin NOT installed yet** (manual step in Studio): https://www.roblox.com/library/96353449041057/Rojo-7-5-1 → then `rojo serve` in `~/Dev/Party Panic` + Connect = local hot-sync loop.
 - Known CI noise (not bugs): `actions/checkout@v4` / `upload-artifact@v4` Node 20 deprecation warning (forced onto Node 24, harmless); `ubuntu-latest` → Ubuntu 26 migration notice (Oct 2026).
 
 ## Next steps (in order)
 
-1. Operator setup for Path A — **one-time Studio bootstrap required** (verified 2026-09-23: web Create ends in "Open Roblox Studio" popup; Open Cloud Universes API has NO create endpoint — creation is Studio-only, on any Windows 10+/macOS machine, ~15 min): create + publish a Baseplate named "Party Panic" (keep Private) → back on web: copy Universe ID (thumbnail ⋯ menu) + Place ID (Places tab → URL) → create API key (create.roblox.com/dashboard/credentials) with **universe-places → Write** bound to the game → set repo secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`/`ROBLOX_PLACE_ID` → push → confirm `versionNumber` in the publish step → playtest in Sober. (Check dashboard first: if the account already owns any experience, reuse it — skips the Studio trip entirely.)
+1. Operator setup for Path A — **Studio now runs on the SleekBook, no borrowing needed** (web Create still can't make experiences; Open Cloud has no create endpoint — creation is Studio-only): File → New → Baseplate → File → **Publish to Roblox As…** → name "Party Panic", keep Private (avoids overwriting `Owner_Vsad's Place`) → dashboard: Universe ID (thumbnail ⋯ menu) + Place ID (Places tab → URL) → API key (create.roblox.com/dashboard/credentials), **universe-places → Write**, bound to the game → repo secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`/`ROBLOX_PLACE_ID` → push → confirm `versionNumber` in publish step → playtest in Sober.
 2. Sprint 1–2: lobby + Floor Fall round (creates `src/rounds/`, round contract).
 3. Operator assigns agent roles/skills → wire into herdr panes.
