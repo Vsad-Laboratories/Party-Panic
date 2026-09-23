@@ -39,13 +39,18 @@ function LobbyMachine:_countdown()
 end
 
 function LobbyMachine:_startRound()
+	local round = RoundRegistry.getRound(self.currentRoundName)
+	if not round then
+		print("[PartyPanic] round not found: " .. self.currentRoundName .. " — skipping to results")
+		self.state = "Results"
+		return
+	end
 	self.state = "InRound"
 	-- Placeholder resolves synchronously; real rounds keep this state until completion (sprint 3+).
 	local context = {
 		players = self.players,
 		config = { duration = Constants.RoundDuration },
 	}
-	local round = RoundRegistry.getRound(self.currentRoundName)
 	round.setup(context)
 	self.lastResult = round.play(context)
 	round.cleanup(context)
