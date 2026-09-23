@@ -41,3 +41,28 @@ jobs:
         with:
           name: PartyPanic-place
           path: build/PartyPanic.rbxlx
+
+  # Path A (locked 2026-09-23): push -> CI build -> Open Cloud publish -> Sober playtest. No local Studio.
+  # Skips until the Operator sets secret ROBLOX_API_KEY and vars ROBLOX_UNIVERSE_ID + ROBLOX_PLACE_ID.
+  publish:
+    needs: build
+    if: github.event_name == 'push' && vars.ROBLOX_UNIVERSE_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download place artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PartyPanic-place
+          path: place
+
+      - name: Publish place version (Open Cloud)
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          UNIVERSE_ID: ${{ vars.ROBLOX_UNIVERSE_ID }}
+          PLACE_ID: ${{ vars.ROBLOX_PLACE_ID }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published" \
+            -H "x-api-key: ${ROBLOX_API_KEY}" \
+            -H "Content-Type: application/xml" \
+            --data-binary @place/PartyPanic.rbxlx

@@ -18,9 +18,11 @@ rojo build -o build/PartyPanic.rbxlx   # compile the place
 
 ## Workflow
 
-Git-push-driven — there is no local Roblox Studio on the dev machine.
+Git-push-driven — there is no local Roblox Studio (Vinegar/HD 4000 ruled out; see Vision.md).
 
-Every push to `main` runs CI: format check → lint → `rojo build` → uploads **`PartyPanic.rbxlx`** as a workflow artifact. Download it from the Actions run and open it in Roblox Studio to test.
+Every push to `main` runs CI: format check → lint → `rojo build` → uploads **`PartyPanic.rbxlx`** as a workflow artifact → **publishes the place to Roblox via Open Cloud**, then playtest in **Sober**.
+
+Publish stays *skipped* until configured once: repo secret `ROBLOX_API_KEY` (Creator Dashboard → credentials, universe-places **Write**) and repo variables `ROBLOX_UNIVERSE_ID` + `ROBLOX_PLACE_ID`. Until then, the artifact alone is downloadable from the Actions run.
 
 ## Layout
 

@@ -85,6 +85,6 @@ Trading, pet/economy sim depth, custom party system, ads, console certification,
 | Risk | Mitigation |
 |---|---|
 | Power gamepasses → retention/review burn (recorded) | perks capped; cosmetics lead |
-| Vinegar dev-loop fragility (current failure) | CI artifact path proven; fallback documented in Vision.md |
+| Dev loop depends on external services (Roblox Open Cloud, Sober) | Path A locked — artifact download remains the fallback; Vinegar deleted (silicon ceiling, see Vision.md) |
 | Solo cadence burnout | cadence commitment is the recommended honest line — protect it |
 | Hunyuan free quota expires (reported launch promo) | bank assets while free; Meshy CC BY as stable fallback |

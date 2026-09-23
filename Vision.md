@@ -55,13 +55,13 @@ Monetization (locked): cosmetics + battle pass + power/perk gamepasses + product
 
 - ✅ Repo bootstrapped and **public** → GitHub Actions free. Pushes: `eadc3c7` bootstrap → `8f4f285` Vision.md → `b80fd80` CI fix.
 - ✅ **CI verified green** (run 35851129161, 9 s): `rokit install --no-trust-check` (official CI flag — trust prompts are interactive-only) → selene std → stylua --check → selene → rojo build → `PartyPanic.rbxlx` artifact uploaded. Local gates also green (0 lint errors, instances verified in place file).
-- ❌ **Vinegar confirmed non-functional on this hardware (diagnosed 2026-09-23):** i3-3217U + Intel HD 4000 (Ivy Bridge) — Mesa reports "Ivy Bridge Vulkan support is incomplete", DXVK requires Vulkan 1.3, skips both HD 4000 devices ("Device does not support Vulkan 1.3") and lavapipe ("Software driver") → "DXVK: No adapters found" → Studio clientcrash (RBXCRASH-Undefined, exit 67). Silicon ceiling, not config. "Open log" button dead = Flatpak sandbox; real logs at `~/.var/app/org.vinegarhq.Vinegar/cache/vinegar/logs/`. Path decision pending: experimental software-Vulkan/wined3d attempts vs. no-Studio loop (CI → Open Cloud publish → Sober playtest — Sober 1.7.1 already installed).
+- ❌ **Vinegar: uninstalled + swept (2026-09-23), Sober 1.7.1 kept.** Root cause was a silicon ceiling: HD 4000 (Ivy Bridge) lacks Vulkan 1.3 → DXVK "No adapters found" → Studio clientcrash (RBXCRASH-Undefined, exit 67). Flatpak app, data, config, flatpakref all removed; zero residuals. "Open log" button was dead = Flatpak sandbox; logs had lived at `~/.var/app/org.vinegarhq.Vinegar/cache/vinegar/logs/`.
+- ✅ **Path A locked (2026-09-23): no-Studio loop** — push → CI build → Open Cloud publish (`POST https://apis.roblox.com/universes/v1/{universeId}/places/{placeId}/versions?versionType=Published`, scope `universe-places:write`, .rbxlx as data-binary, official docs verified) → playtest in Sober. CI `publish` job exists but **skips until repo is configured**: secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`, `ROBLOX_PLACE_ID`.
 - ⏳ Open Cloud auto-publish deliberately NOT added to CI — local Studio via Vinegar is now the likely primary loop; revisit only if Vinegar fails.
 - Known CI noise (not bugs): `actions/checkout@v4` / `upload-artifact@v4` Node 20 deprecation warning (forced onto Node 24, harmless); `ubuntu-latest` → Ubuntu 26 migration notice (Oct 2026).
 
 ## Next steps (in order)
 
-1. Vinegar proof: open built place or `rojo serve` → smoke prints in Output → local dev loop restored.
+1. Operator setup for Path A: create experience (create.roblox.com/dashboard/creations) → copy Universe ID (thumbnail ⋯ menu) + Place ID (Places tab → URL) → create API key (create.roblox.com/dashboard/credentials) with **universe-places → Write** bound to the game → set repo secret `ROBLOX_API_KEY` + vars `ROBLOX_UNIVERSE_ID`/`ROBLOX_PLACE_ID` → push → confirm `versionNumber` in the publish step → playtest in Sober.
 2. Sprint 1–2: lobby + Floor Fall round (creates `src/rounds/`, round contract).
 3. Operator assigns agent roles/skills → wire into herdr panes.
-4. Deferred: Open Cloud publish step (only if artifact/local loop proves insufficient).
