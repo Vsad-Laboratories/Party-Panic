@@ -107,7 +107,6 @@ function LobbyUI.new(mockState)
 	local self = setmetatable({}, { __index = LobbyUI })
 
 	self._mockState = mockState
-	self._connections = {}
 
 	self._screenGui = Instance.new("ScreenGui")
 	self._screenGui.Name = "LobbyUI"
@@ -270,20 +269,7 @@ function LobbyUI:_bindState()
 
 	render()
 
-	local stateConn = self._mockState.onUpdate:Connect(render)
-	table.insert(self._connections, stateConn)
-end
-
-function LobbyUI:destroy()
-	for _, conn in ipairs(self._connections) do
-		conn:Disconnect()
-	end
-	self._connections = {}
-
-	if self._screenGui then
-		self._screenGui:Destroy()
-		self._screenGui = nil
-	end
+	self._mockState.onUpdate:Connect(render)
 end
 
 return LobbyUI
