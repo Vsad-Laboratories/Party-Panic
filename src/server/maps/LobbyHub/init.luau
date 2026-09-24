@@ -46,10 +46,10 @@ function LobbyHub.init()
 	-- SpawnLocation for players
 	local spawn = Instance.new("SpawnLocation")
 	spawn.CFrame = config.lobbySpawn
-	spawn.Size = Vector3.new(4, 1, 4)
-	spawn.Material = Enum.Material.Grass
+	spawn.Size = config.spawn.size
+	spawn.Material = config.spawn.material
 	spawn.Anchored = true
-	spawn.BrickColor = BrickColor.new("Bright green")
+	spawn.BrickColor = config.spawn.color
 	spawn.Name = "LobbySpawn"
 	spawn.Parent = Workspace
 	LobbyHub._spawnLocation = spawn
