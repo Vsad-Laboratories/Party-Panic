@@ -1,10 +1,15 @@
--- Smoke bootstrap: proves client-side rojo -> Studio sync.
--- Bootstraps lobby UI against mock local state (no server wiring yet).
+-- Client bootstrap: builds the lobby UI and binds it to the session-scoped
+-- LobbyStateEvent that LobbyMachine publishes (src/server/LobbyMachine.luau).
+-- The event is created server-side at runtime; wait for it, then push every
+-- payload to LobbyUI so it re-renders. Vote and coin surfaces stay shells.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LobbyUI = require(script.LobbyUI)
-local MockState = require(script.MockState)
 
-local mockState = MockState.new()
-mockState:startCountdown()
+local lobbyUI = LobbyUI.new()
 
-LobbyUI.new(mockState)
+local lobbyStateEvent = ReplicatedStorage:WaitForChild("LobbyStateEvent")
+lobbyStateEvent.OnClientEvent:Connect(function(payload)
+	lobbyUI:update(payload)
+end)
