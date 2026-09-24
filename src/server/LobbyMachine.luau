@@ -1,8 +1,10 @@
 -- LobbyMachine: lobby -> countdown -> round dispatch -> results -> repeat.
 -- One state = one function; transitions explicit. Ticks via Heartbeat (1s resolution).
 -- Keeps the smoke boot working: boot never blocks, state sits in Waiting until players join.
+-- Publishes lobby state to clients via RemoteEvent (LobbyState.luau payload type).
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
 local RoundRegistry = require(game.ServerScriptService.Server.RoundRegistry)
@@ -14,10 +16,13 @@ function LobbyMachine.new()
 	local self = setmetatable({}, LobbyMachine)
 	self.state = "Waiting"
 	self.players = {}
+	self.currentRoundName = Constants.DefaultRound
+	self.currentRound = nil
+	self.currentContext = nil
 	self.countdown = 0
 	self.tickAccumulator = 0
 	self.lastResult = nil
-	self.currentRoundName = Constants.DefaultRound
+	self.stateEvent = nil
 	return self
 end
 
@@ -26,6 +31,7 @@ function LobbyMachine:_wait()
 		self.countdown = Constants.CountdownSeconds
 		self.state = "Countdown"
 		print("[PartyPanic] countdown started (" .. self.countdown .. "s)")
+		self:_publishState()
 	end
 end
 
@@ -33,6 +39,7 @@ function LobbyMachine:_countdown()
 	if self.countdown > 0 then
 		self.countdown -= 1
 		print("[PartyPanic] starting in " .. self.countdown .. "s")
+		self:_publishState()
 	else
 		self:_startRound()
 	end
@@ -43,19 +50,30 @@ function LobbyMachine:_startRound()
 	if not round then
 		print("[PartyPanic] round not found: " .. self.currentRoundName .. " — skipping to results")
 		self.state = "Results"
+		self:_publishState()
 		return
 	end
 	self.state = "InRound"
-	-- Placeholder resolves synchronously; real rounds keep this state until completion (sprint 3+).
+	self.currentRound = round
 	local context = {
 		players = self.players,
 		config = { duration = Constants.RoundDuration },
+		onRoundComplete = function(result)
+			self.lastResult = result
+			if self.currentRound and self.currentContext then
+				self.currentRound.cleanup(self.currentContext)
+				self.currentRound = nil
+				self.currentContext = nil
+			end
+			self.state = "Results"
+			print("[PartyPanic] round complete")
+			self:_publishState()
+		end,
 	}
+	self.currentContext = context
+	self:_publishState()
 	round.setup(context)
-	self.lastResult = round.play(context)
-	round.cleanup(context)
-	self.state = "Results"
-	print("[PartyPanic] round complete")
+	round.play(context)
 end
 
 function LobbyMachine:_results()
@@ -64,6 +82,7 @@ function LobbyMachine:_results()
 	self.lastResult = nil
 	self.state = "Waiting"
 	print("[PartyPanic] back to lobby (waiting for players)")
+	self:_publishState()
 end
 
 function LobbyMachine:_tick(dt)
@@ -80,6 +99,7 @@ function LobbyMachine:_tick(dt)
 	elseif self.state == "Results" then
 		self:_results()
 	end
+	-- InRound: round manages gameplay via its own Heartbeat; FSM idle until onRoundComplete.
 end
 
 function LobbyMachine:_bindPlayers()
@@ -89,6 +109,7 @@ function LobbyMachine:_bindPlayers()
 	Players.PlayerAdded:Connect(function(player)
 		table.insert(self.players, player)
 		print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
+		self:_publishState()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		for i, p in ipairs(self.players) do
@@ -97,14 +118,46 @@ function LobbyMachine:_bindPlayers()
 				break
 			end
 		end
+		self:_publishState()
 	end)
+end
+
+function LobbyMachine:_createStateEvent()
+	self.stateEvent = ReplicatedStorage:FindFirstChild("LobbyStateEvent")
+	if not self.stateEvent then
+		self.stateEvent = Instance.new("RemoteEvent")
+		self.stateEvent.Name = "LobbyStateEvent"
+		self.stateEvent.Parent = ReplicatedStorage
+	end
+end
+
+function LobbyMachine:_publishState()
+	if not self.stateEvent then
+		return
+	end
+	local playerInfos = {}
+	for _, player in ipairs(self.players) do
+		table.insert(playerInfos, {
+			userId = player.UserId,
+			name = player.Name,
+		})
+	end
+	self.stateEvent:FireAllClients({
+		state = self.state,
+		countdown = self.countdown,
+		players = playerInfos,
+		roundName = self.currentRoundName,
+		lastResult = self.lastResult,
+	})
 end
 
 function LobbyMachine:start()
 	self:_bindPlayers()
+	self:_createStateEvent()
 	RunService.Heartbeat:Connect(function(dt)
 		self:_tick(dt)
 	end)
+	self:_publishState()
 	print("[PartyPanic] lobby machine started — state: Waiting")
 end
 
