@@ -40,6 +40,7 @@ Backlog (gated — kept in clear sight per Operator): player voting for new mini
 | Tripo | experimentation only | own terms contradict (pricing page: free = non-commercial; blog: CC BY 4.0) | **ambiguous rights never ship** — prototypes/placeholders only |
 
 - No paid tiers at v1 — free tiers suffice; revisit only if exclusivity needed (battle-pass hero items).
+- Candidate (Operator find, 2026-09-24): **CadXStudio** (cadxstudio.in) — browser text/sketch-to-CAD, parametric BREP, projects/workbenches (Razorpay checkout present = paid tier exists). Potential fit: precise mechanical props via CAD → mesh export. Gates before use: free-tier export formats + output commercial rights verified (Tripo rule — ambiguous rights never ship) and output decimates into the <5k-tris style bible. Does not displace Meshy/Hunyuan as primary.
 - Anti-spaghetti applies to assets too: style bible (`docs/STYLE.md`) before mass generation — palette, <5k tris, stud scale, single texture. Mesh QA (tri/texture count) is a candidate CI script over `assets/*.obj`.
 
 ## Round backlog (future data drops — advisory review 2026-09-24)
