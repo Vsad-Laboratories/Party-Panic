@@ -1,5 +1,5 @@
 -- MockState: mock local state for lobby UI playtesting — no server wiring.
--- Simulates countdown timer, player list, coins, and winner state.
+-- Simulates countdown timer, player list, and coins.
 
 local RunService = game:GetService("RunService")
 
@@ -10,9 +10,9 @@ function MockState.new()
 	local self = setmetatable({}, MockState)
 
 	self.players = {
-		{ name = "You", isWinner = true },
-		{ name = "Alex_R", isWinner = false },
-		{ name = "Sam_K", isWinner = false },
+		{ name = "You" },
+		{ name = "Alex_R" },
+		{ name = "Sam_K" },
 	}
 	self.countdown = 10
 	self.coins = 245
@@ -31,32 +31,19 @@ function MockState:startCountdown()
 	self._running = true
 
 	self._tickConn = RunService.Heartbeat:Connect(function(dt)
-		self.countdown = self.countdown - dt
-		if self.countdown <= 0 then
-			self.countdown = 0
+		local previousCountdown = self.countdown
+		self.countdown = math.max(0, self.countdown - dt)
+
+		if self.countdown ~= previousCountdown then
+			self.onUpdate:Fire()
 		end
-		self.onUpdate:Fire()
+
+		if self.countdown == 0 then
+			self._tickConn:Disconnect()
+			self._tickConn = nil
+			self._running = false
+		end
 	end)
-end
-
-function MockState:stopCountdown()
-	if self._tickConn then
-		self._tickConn:Disconnect()
-		self._tickConn = nil
-	end
-	self._running = false
-end
-
-function MockState:addCoin(amount: number)
-	self.coins = self.coins + amount
-	self.onUpdate:Fire()
-end
-
-function MockState:destroy()
-	self:stopCountdown()
-	if self.onUpdate then
-		self.onUpdate:Destroy()
-	end
 end
 
 return MockState
