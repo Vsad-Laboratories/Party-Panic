@@ -126,13 +126,13 @@ end
 
 function LobbyUI:_build()
 	local root = self._screenGui
-	root.Size = UDim2.fromScale(1, 1)
 
 	local background = Instance.new("Frame")
 	background.Name = "Background"
 	background.Parent = root
 	background.Size = UDim2.fromScale(1, 1)
 	background.BackgroundColor3 = Color3.fromRGB(15, 20, 40)
+	self._background = background
 
 	createTextLabel("Title", root, "PARTY PANIC", UDim2.new(0.5, 0, 0, 40), UDim2.fromOffset(400, 60), 36, nil, true)
 
@@ -287,6 +287,8 @@ function LobbyUI:_render()
 
 	self._coinLabel.Text = "—"
 
+	self._background.Visible = (state ~= "InRound")
+
 	self:_renderWinner(p)
 end
 
@@ -298,6 +300,7 @@ function LobbyUI:_renderNeutral()
 	self._countdownLabel.Text = "—"
 	self._coinLabel.Text = "—"
 	self._crownLabel.Text = "—"
+	self._background.Visible = true
 end
 
 function LobbyUI:_renderWinner(p: LobbyStatePayload)
