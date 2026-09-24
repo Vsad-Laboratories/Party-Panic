@@ -7,13 +7,4 @@ local MockState = require(script.MockState)
 local mockState = MockState.new()
 mockState:startCountdown()
 
-local lobbyUI = LobbyUI.new(mockState)
-
-game:BindToClose(function()
-	if lobbyUI then
-		lobbyUI:destroy()
-	end
-	if mockState then
-		mockState:destroy()
-	end
-end)
+LobbyUI.new(mockState)
