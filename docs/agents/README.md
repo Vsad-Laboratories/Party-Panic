@@ -14,7 +14,7 @@
 ## Hard discipline (violation = task rejected)
 
 1. **Never push `main`.** Branch: `agent/<role>-<task>` → push → `gh pr create` → Reviewer verdict → Control merges.
-2. **Nothing merges red.** First run in your worktree: `selene generate-roblox-std` (the std file is gitignored). Before every push: `stylua --check . && selene src && rojo build` all green (tools are on PATH via rokit).
+2. **Nothing merges red.** First run in your worktree: `selene generate-roblox-std` (the std file is gitignored). Before every push: `stylua --check . && selene src && rojo build -o build/PartyPanic.rbxlx` all green (tools are on PATH via rokit).
 3. **Stay in your directory.** Crossing scope (e.g. Backend editing `src/client/`) requires stating it in the PR description.
 4. **Spaghetti stop (RULES #11):** cross-module coupling trending up → halt, report to Control, wait.
 5. **No fluff (RULES #12):** every line justifies itself. No speculative abstractions, no placeholder litter, no commented-out code.

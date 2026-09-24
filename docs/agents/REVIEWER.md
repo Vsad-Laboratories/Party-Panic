@@ -6,7 +6,7 @@
 
 Write `docs/REVIEW.md` derived strictly from existing law (Vision pillars, GDD locked decisions, PRD FR1–FR10, RULES.md):
 
-1. **Gates:** stylua / selene / rojo build green — evidence pasted in PR, not claimed.
+1. **Gates:** stylua / selene / rojo build -o build/PartyPanic.rbxlx green — evidence pasted in PR, not claimed.
 2. **Scope:** changed files inside the author's charter dirs; any cross-dir change justified in PR description.
 3. **Contract:** server/client changes respect the round lifecycle (`setup → play → cleanup`) and never couple two rounds or two modules (RULES #11 spaghetti stop).
 4. **Data-driven:** tunables live in tables, not constants sprinkled in logic; a new round/map/cosmetic needs zero core edits (Vision pillar #1).

@@ -19,7 +19,7 @@ The Reviewer writes no feature code and never merges — Control merges after `A
 
 - [ ] `stylua --check .` passes
 - [ ] `selene src` passes
-- [ ] `rojo build` succeeds
+- [ ] `rojo build -o build/PartyPanic.rbxlx` succeeds
 - [ ] Gate output is **pasted in the PR description as evidence** — claimed-but-unshown gate output = finding (RULES §4: prove done; intent is not a result)
 - [ ] Nothing merges red: any red gate is an automatic `REQUEST CHANGES`, no exceptions
 
