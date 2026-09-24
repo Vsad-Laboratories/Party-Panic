@@ -107,10 +107,8 @@ end
 
 local LobbyUI = {}
 
-function LobbyUI.new(mockState)
+function LobbyUI.new()
 	local self = setmetatable({}, { __index = LobbyUI })
-
-	self._mockState = mockState
 
 	self._screenGui = Instance.new("ScreenGui")
 	self._screenGui.Name = "LobbyUI"
@@ -118,8 +116,10 @@ function LobbyUI.new(mockState)
 	self._screenGui.IgnoreGuiInset = true
 	self._screenGui.Parent = PlayerGui
 
+	self._payload = nil
+
 	self:_build()
-	self:_bindState()
+	self:_render()
 
 	return self
 end
@@ -193,7 +193,7 @@ function LobbyUI:_build()
 	crownArea.BorderSizePixel = 0
 	createCorner(80).Parent = crownArea
 
-	createTextLabel(
+	self._crownLabel = createTextLabel(
 		"CrownLabel",
 		crownArea,
 		"Winner",
@@ -246,34 +246,73 @@ function LobbyUI:_build()
 	end
 end
 
-function LobbyUI:_bindState()
-	local function render()
-		if not self._screenGui or not self._screenGui.Parent then
-			return
-		end
+function LobbyUI:update(payload: LobbyStatePayload)
+	self._payload = payload
+	self:_render()
+end
 
-		local state = self._mockState
-
-		self._playerCountLabel.Text = "Players: " .. #state.players .. " / " .. MAX_PLAYERS
-
-		for i, entry in ipairs(self._playerSlots) do
-			local player = state.players[i]
-			if player then
-				entry.frame.Visible = true
-				entry.nameLabel.Text = player.name
-			else
-				entry.frame.Visible = false
-			end
-		end
-
-		self._countdownLabel.Text = "Starting in " .. math.max(0, state.countdown) .. "s"
-
-		self._coinLabel.Text = tostring(state.coins)
+function LobbyUI:_render()
+	if not self._screenGui or not self._screenGui.Parent then
+		return
 	end
 
-	render()
+	local p = self._payload
+	if not p then
+		self:_renderNeutral()
+		return
+	end
 
-	self._mockState.onUpdate:Connect(render)
+	self._playerCountLabel.Text = "Players: " .. #p.players .. " / " .. MAX_PLAYERS
+
+	for i, entry in ipairs(self._playerSlots) do
+		local player = p.players[i]
+		if player then
+			entry.frame.Visible = true
+			entry.nameLabel.Text = player.name
+		else
+			entry.frame.Visible = false
+		end
+	end
+
+	local state = p.state
+	if state == "Countdown" then
+		self._countdownLabel.Text = "Starting in " .. math.max(0, p.countdown) .. "s"
+	elseif state == "InRound" then
+		self._countdownLabel.Text = p.roundName
+	elseif state == "Results" then
+		self._countdownLabel.Text = "Results"
+	else
+		self._countdownLabel.Text = "Waiting for players"
+	end
+
+	self._coinLabel.Text = "—"
+
+	self:_renderWinner(p)
+end
+
+function LobbyUI:_renderNeutral()
+	self._playerCountLabel.Text = "Players: — / " .. MAX_PLAYERS
+	for _, entry in ipairs(self._playerSlots) do
+		entry.frame.Visible = false
+	end
+	self._countdownLabel.Text = "—"
+	self._coinLabel.Text = "—"
+	self._crownLabel.Text = "—"
+end
+
+function LobbyUI:_renderWinner(p: LobbyStatePayload)
+	local winnerUserId = p.lastResult and p.lastResult.winnerUserId
+	if not winnerUserId then
+		self._crownLabel.Text = "—"
+		return
+	end
+	for _, player in ipairs(p.players) do
+		if player.userId == winnerUserId then
+			self._crownLabel.Text = player.name
+			return
+		end
+	end
+	self._crownLabel.Text = tostring(winnerUserId)
 end
 
 return LobbyUI
