@@ -1,9 +1,7 @@
 -- FloorFall: tile-vanish elimination round. A grid of Parts forms a floor
 -- that vanishes over time. Players who fall below the Y threshold are eliminated.
 -- Last standing wins. Conforms to RoundContract (src/shared/RoundContract).
--- Conforms to RoundModule: setup -> play -> cleanup.
--- play() is async — it starts a Heartbeat loop and signals completion via
--- context.onRoundComplete(result).
+-- play() is async — starts a Heartbeat loop, signals completion via onRoundComplete.
 
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -69,14 +67,27 @@ function FloorFall.setup(context: RoundContract.RoundContext)
 			}
 		end
 	end
-	print(
-		"[PartyPanic] FloorFall setup — "
-			.. #context.players
-			.. " players, grid "
-			.. FloorConfig.gridRows
-			.. "x"
-			.. FloorConfig.gridCols
-	)
+
+	-- Place participants on grid tiles (above yThreshold, standing headroom)
+	local placed = 0
+	for i, player in ipairs(context.players) do
+		local char = player.Character
+		if char then
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				placed += 1
+				local row = ((i - 1) % FloorConfig.gridRows) + 1
+				local col = ((i - 1) % FloorConfig.gridCols) + 1
+				local tile = FloorFall._tiles[row] and FloorFall._tiles[row][col]
+				if tile and tile.part then
+					local pos = tile.part.Position
+					hrp.CFrame = CFrame.new(pos.X, pos.Y + FloorConfig.tileThickness + 3, pos.Z)
+				end
+			end
+		end
+	end
+
+	print("[PartyPanic] FloorFall setup — placed " .. placed .. "/" .. #context.players .. " players")
 end
 
 function FloorFall.play(context: RoundContract.RoundContext)
@@ -101,15 +112,20 @@ function FloorFall.play(context: RoundContract.RoundContext)
 		})
 	end
 
+	local function pruneGhosts()
+		for userId, player in pairs(living) do
+			if player.Parent == nil or player.Character == nil then
+				living[userId] = nil
+			end
+		end
+	end
+
 	local function checkEliminations()
 		for userId, player in pairs(living) do
-			local char = player.Character
-			if char then
-				local hrp = char:FindFirstChild("HumanoidRootPart")
-				if hrp and hrp.Position.Y < FloorConfig.yThreshold then
-					living[userId] = nil
-					print("[PartyPanic] FloorFall: " .. player.Name .. " eliminated")
-				end
+			local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			if hrp and hrp.Position.Y < FloorConfig.yThreshold then
+				living[userId] = nil
+				print("[PartyPanic] FloorFall: " .. player.Name .. " eliminated")
 			end
 		end
 	end
@@ -153,6 +169,9 @@ function FloorFall.play(context: RoundContract.RoundContext)
 
 	FloorFall._heartbeatConn = RunService.Heartbeat:Connect(function(dt)
 		FloorFall._elapsed += dt
+
+		-- Prune ghosts (disconnected or missing character) before any checks
+		pruneGhosts()
 
 		-- Timeout fallback (PRD §4: 60-90s cap)
 		if FloorFall._elapsed >= roundDuration then

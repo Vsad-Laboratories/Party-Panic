@@ -109,6 +109,7 @@ function LobbyMachine:_bindPlayers()
 	Players.PlayerAdded:Connect(function(player)
 		table.insert(self.players, player)
 		print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
+		self:_publishState()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		for i, p in ipairs(self.players) do
@@ -117,6 +118,7 @@ function LobbyMachine:_bindPlayers()
 				break
 			end
 		end
+		self:_publishState()
 	end)
 end
 
