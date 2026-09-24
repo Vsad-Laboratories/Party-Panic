@@ -1,10 +1,14 @@
--- LobbyUI: mobile-first lobby surface against mock local state.
--- No server wiring yet — Backend's frame contract lands first.
+-- LobbyUI: mobile-first lobby surface driven by the server lobby-state feed.
+-- Vote and coin controls remain shell surfaces until their protocols land.
 -- Layout: thumb-reach bottom vote buttons, top status, center crown area.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
+local LobbyState = require(ReplicatedStorage.Shared.LobbyState)
+
+type LobbyStatePayload = LobbyState.LobbyStatePayload
 
 local BOTTOM_MARGIN = 80
 local BUTTON_SIZE = UDim2.fromOffset(280, 96)
