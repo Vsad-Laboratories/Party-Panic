@@ -10,7 +10,7 @@ Success looks like: D1 retention above Roblox genre average, session length 10+ 
 
 ## Pillars (every decision checks against these)
 
-1. **Content is data** — one file per minigame in `src/rounds/`; new round/map/cosmetic = data + at most one new module, zero edits to the core loop.
+1. **Content is data, one DIRECTORY per minigame — no system in one file** (Operator rule, 2026-09-24) — `src/server/rounds/<Game>/` holds `init.luau` (lifecycle only), `config.luau` (pure data table), plus one file per subsystem (`floor.luau`, `players.luau`, `potato.luau`, …); new round/map/cosmetic = data + a new directory, zero edits to the core loop. Same rule everywhere: frame files live in `src/server/core/`, UI modules in `src/client/ui/`.
 2. **The frame is fixed** — lobby → vote → round state machine → rewards. Code changes are rare; data changes are weekly.
 3. **Nothing merges red** — CI gate: `stylua --check` → `selene` → `rojo build`. AI PRs must pass before human review.
 4. **Anti-spaghetti** — RULES.md hard rules 11/12: codebase trends toward spaghetti-fication → STOP, ask Operator; no fluff additions ever.
@@ -20,10 +20,13 @@ Success looks like: D1 retention above Roblox genre average, session length 10+ 
 
 ```
 Party Panic (Roblox place, built by Rojo from this repo)
-├── src/server/      round state machine, lobby, matchmaking, persistence, economy
-├── src/client/      UI, input, spectate/replay cam
-├── src/shared/      round interface, configs, tables   (created when first needed)
-├── src/rounds/      ONE FILE PER MINIGAME             (created sprint 3 — nothing speculative)
+├── src/server/      Bootstrap.server.luau + core/ (frame: LobbyMachine, RoundRegistry)
+│   ├── core/        the fixed frame (Pillar 2) — rare edits
+│   └── rounds/<Game>/  ONE DIRECTORY PER GAME (Pillar 1):
+│              init.luau = RoundContract lifecycle   config.luau = pure data
+│              + subsystem files (floor.luau, players.luau, potato.luau, …)
+├── src/client/      init.client.luau + ui/ (LobbyUI, future widgets) + input, spectate later
+├── src/shared/      round interface, contracts, typed payloads
 ├── assets/          .obj meshes + textures, versioned (AI-gen, low-poly <5k tris, single palette)
 ├── default.project.json   Rojo: repo → place mapping
 ├── rokit.toml              pinned: rojo 7.7.0, selene 0.31.0, stylua 2.5.2
@@ -33,7 +36,7 @@ Party Panic (Roblox place, built by Rojo from this repo)
 ```
 
 - **DataModel mapping:** `ServerScriptService.Server` ← `src/server` (Folder: `Bootstrap.server.luau` boot Script + ModuleScript siblings), `StarterPlayer.StarterPlayerScripts.Client` ← `src/client` (LocalScript), `ReplicatedStorage.Shared` ← `src/shared` (ModuleScripts, live).
-- **Round contract (written: `src/shared/RoundContract.luau`; conformance via annotations + data-driven name lookup in `src/server/RoundRegistry.luau`):** each round module exposes lifecycle functions the state machine calls (setup → play → cleanup); rounds never touch each other — this is what keeps AI-generated rounds safe to merge. Top-level `src/rounds/` still deferred to sprint 3.
+- **Round contract (written: `src/shared/RoundContract.luau`; conformance via annotations + data-driven name lookup in `src/server/RoundRegistry.luau`):** each round module exposes lifecycle functions the state machine calls (setup → play → cleanup); rounds never touch each other — this is what keeps AI-generated rounds safe to merge. Games live as **directories**: `src/server/rounds/<Game>/` (Rojo init rule makes the directory itself the round ModuleScript, subsystem files become its children — registry lookup unchanged).
 
 ## Stack & workflow (locked)
 
