@@ -6,45 +6,23 @@
 -- play() is async — starts a Heartbeat loop, signals completion via onRoundComplete.
 
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 
 local RoundContract = require(game.ReplicatedStorage.Shared.RoundContract)
 
-local HotConfig = {
-	roundDuration = 45,
-	initialTimer = 6,
-	timerDecrement = 0.8,
-	minTimer = 1.5,
-	potatoSize = Vector3.new(3, 3, 3),
-	potatoColor = BrickColor.new("Bright red"),
-	potatoStartY = 15,
-	eliminateThreshold = -50,
-	playerSpawnRadius = 15,
-	playerSpawnY = 16,
-}
+local config = require(script.config)
+local potato = require(script.potato)
 
 local HotPotato = {}
 
-HotPotato._potato = nil
-HotPotato._holderUserId = nil
 HotPotato._timer = 0
 HotPotato._waveElapsed = 0
-HotPotato._touchConn = nil
-HotPotato._heartbeatConn = nil
 HotPotato._roundEnded = false
+HotPotato._heartbeatConn = nil
 
 function HotPotato.setup(context: RoundContract.RoundContext)
-	HotPotato._potato = Instance.new("Part")
-	HotPotato._potato.Size = HotConfig.potatoSize
-	HotPotato._potato.CFrame = CFrame.new(0, HotConfig.potatoStartY, 0)
-	HotPotato._potato.BrickColor = HotConfig.potatoColor
-	HotPotato._potato.Anchored = true
-	HotPotato._potato.CanCollide = false
-	HotPotato._potato.Name = "HotPotato"
-	HotPotato._potato.Parent = Workspace
+	potato.create()
 
-	HotPotato._holderUserId = nil
-	HotPotato._timer = HotConfig.initialTimer
+	HotPotato._timer = config.initialTimer
 	HotPotato._waveElapsed = 0
 	HotPotato._roundEnded = false
 
@@ -57,9 +35,9 @@ function HotPotato.setup(context: RoundContract.RoundContext)
 				placed += 1
 				local angle = (i / #context.players) * 2 * math.pi
 				local offset = Vector3.new(
-					math.cos(angle) * HotConfig.playerSpawnRadius,
-					HotConfig.playerSpawnY,
-					math.sin(angle) * HotConfig.playerSpawnRadius
+					math.cos(angle) * config.playerSpawnRadius,
+					config.playerSpawnY,
+					math.sin(angle) * config.playerSpawnRadius
 				)
 				hrp.CFrame = CFrame.new(offset)
 				hrp.AssemblyLinearVelocity = Vector3.zero
@@ -72,7 +50,7 @@ function HotPotato.setup(context: RoundContract.RoundContext)
 end
 
 function HotPotato.play(context: RoundContract.RoundContext)
-	local roundDuration = (context.config and context.config.duration) or HotConfig.roundDuration
+	local roundDuration = (context.config and context.config.duration) or config.roundDuration
 	local startingCount = #context.players
 	local alive = {}
 
@@ -85,17 +63,11 @@ function HotPotato.play(context: RoundContract.RoundContext)
 			return
 		end
 		HotPotato._roundEnded = true
-		if HotPotato._touchConn then
-			HotPotato._touchConn:Disconnect()
-			HotPotato._touchConn = nil
-		end
 		if HotPotato._heartbeatConn then
 			HotPotato._heartbeatConn:Disconnect()
 			HotPotato._heartbeatConn = nil
 		end
-		if HotPotato._potato and HotPotato._potato.Parent then
-			HotPotato._potato:Destroy()
-		end
+		potato.destroy()
 		context.onRoundComplete({
 			winnerUserId = winner,
 			scores = {},
@@ -119,21 +91,21 @@ function HotPotato.play(context: RoundContract.RoundContext)
 	end
 
 	local function eliminateHolder()
-		if HotPotato._holderUserId == nil then
+		if potato.holderUserId == nil then
 			return
 		end
-		local elapsedUserId = HotPotato._holderUserId
-		HotPotato._holderUserId = nil
+		local elapsedUserId = potato.holderUserId
+		potato.pass()
 		local eliminated = alive[elapsedUserId]
 		if eliminated then
 			alive[elapsedUserId] = nil
 			print("[PartyPanic] HotPotato: " .. eliminated.Name .. " eliminated")
 		end
-		HotPotato._timer = math.max(HotConfig.minTimer, HotPotato._timer - HotConfig.timerDecrement)
+		HotPotato._timer = math.max(config.minTimer, HotPotato._timer - config.timerDecrement)
 		HotPotato._waveElapsed = 0
 	end
 
-	HotPotato._touchConn = HotPotato._potato.Touched:Connect(function(hit)
+	potato.onTouch(function(hit)
 		if HotPotato._roundEnded then
 			return
 		end
@@ -149,8 +121,7 @@ function HotPotato.play(context: RoundContract.RoundContext)
 		if not player or alive[player.UserId] == nil then
 			return
 		end
-		HotPotato._holderUserId = player.UserId
-		print("[PartyPanic] HotPotato: " .. player.Name .. " holding potato")
+		potato.setHolder(player)
 	end)
 
 	HotPotato._heartbeatConn = RunService.Heartbeat:Connect(function(dt)
@@ -192,19 +163,11 @@ end
 
 function HotPotato.cleanup(context: RoundContract.RoundContext)
 	HotPotato._roundEnded = true
-	if HotPotato._touchConn then
-		HotPotato._touchConn:Disconnect()
-		HotPotato._touchConn = nil
-	end
 	if HotPotato._heartbeatConn then
 		HotPotato._heartbeatConn:Disconnect()
 		HotPotato._heartbeatConn = nil
 	end
-	if HotPotato._potato and HotPotato._potato.Parent then
-		HotPotato._potato:Destroy()
-	end
-	HotPotato._potato = nil
-	HotPotato._holderUserId = nil
+	potato.destroy()
 	HotPotato._timer = 0
 	HotPotato._waveElapsed = 0
 	print("[PartyPanic] HotPotato cleanup — " .. #context.players .. " players")

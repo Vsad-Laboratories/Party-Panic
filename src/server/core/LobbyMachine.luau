@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
-local RoundRegistry = require(game.ServerScriptService.Server.RoundRegistry)
+local RoundRegistry = require(game.ServerScriptService.Server.core.RoundRegistry)
 
 local LobbyMachine = {}
 LobbyMachine.__index = LobbyMachine

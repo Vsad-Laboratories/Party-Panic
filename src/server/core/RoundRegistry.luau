@@ -1,5 +1,8 @@
 -- RoundRegistry: resolves round names to ModuleScripts in the rounds folder.
--- Adding a round = drop a ModuleScript in src/server/rounds/. No FSM or registry edit.
+-- Adding a round = drop a ModuleScript (or directory with init.luau) in
+-- src/server/rounds/. Rojo's init rule makes directories act as ModuleScripts,
+-- so games are now expanded directory/module hierarchies (Operator rule).
+-- No FSM or registry edit needed — just drop the folder/module.
 local RoundsFolder = game.ServerScriptService.Server:WaitForChild("rounds")
 
 local RoundRegistry = {}

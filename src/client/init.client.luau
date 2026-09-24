@@ -5,7 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LobbyUI = require(script.LobbyUI)
+local LobbyUI = require(script.ui.LobbyUI)
 
 local lobbyUI = LobbyUI.new()
 
