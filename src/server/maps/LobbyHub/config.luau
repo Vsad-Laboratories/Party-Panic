@@ -33,13 +33,13 @@ local LobbyHubConfig = {
 		material = Enum.Material.Metal,
 		color = BrickColor.new("Bright blue"),
 	},
-	lobbySpawn = CFrame.new(0, 3, 0),
+	lobbySpawn = CFrame.new(0, 1.5, 0),
 	spawnPoints = {
-		Vector3.new(0, 3, 0),
-		Vector3.new(10, 3, 0),
-		Vector3.new(-10, 3, 0),
-		Vector3.new(0, 3, 10),
-		Vector3.new(0, 3, -10),
+		Vector3.new(0, 1.5, 0),
+		Vector3.new(10, 1.5, 0),
+		Vector3.new(-10, 1.5, 0),
+		Vector3.new(0, 1.5, 10),
+		Vector3.new(0, 1.5, -10),
 	},
 }
 return LobbyHubConfig
