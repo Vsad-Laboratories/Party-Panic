@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
 local RoundRegistry = require(game.ServerScriptService.Server.core.RoundRegistry)
+local Placements = require(game.ServerScriptService.Server.core.Placements)
 
 local LobbyMachine = {}
 LobbyMachine.__index = LobbyMachine
@@ -33,6 +34,8 @@ function LobbyMachine:_wait()
 		self.state = "Countdown"
 		print("[PartyPanic] countdown started (" .. self.countdown .. "s)")
 		self:_publishState()
+	else
+		Placements.placeLobby(self.players)
 	end
 end
 
@@ -84,6 +87,7 @@ function LobbyMachine:_results()
 	print("[PartyPanic] results shown — winner: " .. tostring(winner))
 	self.lastResult = nil
 	self.state = "Waiting"
+	Placements.placeLobby(self.players)
 	print("[PartyPanic] back to lobby (waiting for players)")
 	self:_publishState()
 end
@@ -112,9 +116,13 @@ function LobbyMachine:_bindPlayers()
 	Players.PlayerAdded:Connect(function(player)
 		table.insert(self.players, player)
 		print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
+		if self.state == "Waiting" or self.state == "Results" then
+			Placements.placePlayer(player)
+		end
 		self:_publishState()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		Placements.unhook(player)
 		for i, p in ipairs(self.players) do
 			if p == player then
 				table.remove(self.players, i)
@@ -160,6 +168,7 @@ function LobbyMachine:start()
 	RunService.Heartbeat:Connect(function(dt)
 		self:_tick(dt)
 	end)
+	Placements.placeLobby(self.players)
 	self:_publishState()
 	print("[PartyPanic] lobby machine started — state: Waiting")
 end
