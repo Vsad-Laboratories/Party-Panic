@@ -16,7 +16,20 @@ Single source of truth for design + cross-session decisions. Update this file wh
 Cosmetics + battle pass + power/perk gamepasses + products. Ads later.
 Recorded warning: power gamepasses aimed at 9–13 risk review-score and retention burn; recommendation = cap power, lead with cosmetics. Operator's call either way.
 Decisions (2026-09-24, advisory review): battle pass gated until a returning cohort proves out (D7 ≥ PRD Minimum, 2 consecutive weeks) — never launch a pass into an empty game. No random paid rewards without a clear preview (gambling-feel caution, ages 9–13). The cosmetic line sells status: crown trails, victory poses, entrance effects, emotes, elimination effects, lobby pets, nameplates, seasonal pass, VIP-server perks, preview-gated reroll product.
-Revenue scenarios (Operator analysis 2026-09-24, planning reference — 100k MAU, 70% developer share, DevEx ≈ $0.0038/Robux): 5 R$/player ≈ $1,330/mo · 25 ≈ $6,650/mo · 100 ≈ $26,600/mo · 300 ≈ $79,800/mo. Varies with purchases, regional pricing, Premium, ads, taxes, splits.
+Revenue model (Operator + external specialist, 2026-09-24 — planning reference, not forecast): DevEx **$0.0035/Robux** (official $350/100,000; the earlier $0.0038 figure was unverified and is retired) · 70% developer share after Roblox's 30% marketplace cut. 100k MAU × spend: 5 R$/player ≈ $1,225/mo · 25 ≈ $6,125 · 100 ≈ $24,500 · 300 ≈ $73,500. Varies with purchases, regional pricing, Premium, ads, taxes, splits.
+
+DAU × blended ARPU (cash ≈ DAU × ARPU × 0.7 × 30 × $0.0035):
+
+| DAU | ARPU (all players) | Monthly cash |
+|---|---|---|
+| 1,000 | 10 R$ | $735 |
+| 1,000 | 50 R$ | $3,675 |
+| 5,000 | 20 R$ | $7,350 |
+| 5,000 | 100 R$ | $36,750 |
+| 20,000 | 50 R$ | $73,500 |
+| 20,000 | 200 R$ | $294,000 |
+
+Party-game levers: payer conversion 2–5% (design F2P progression + paid cosmetics together) · Premium playtime payouts ≈ 10–15% of baseline · D1 <35% / D7 <10% = churn warning (PRD staged gates keep D1 20/30 min/strong + D7 ≥10; 35% is the genre stretch goal). High rows require deep shop + high conversion — cosmetics-led strategy (locked) targets the middle rows first.
 Backlog (gated — kept in clear sight per Operator): player voting for new minigame ideas — post-v1, same cohort-proof gate as the battle pass. Squads/rank depth/trading stay out until the first cohort returns (analyst's strategic warning).
 
 ## Workflow (locked)
