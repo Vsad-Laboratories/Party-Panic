@@ -82,6 +82,8 @@ function FloorFall.setup(context: RoundContract.RoundContext)
 				if tile and tile.part then
 					local pos = tile.part.Position
 					hrp.CFrame = CFrame.new(pos.X, pos.Y + FloorConfig.tileThickness + 3, pos.Z)
+					hrp.AssemblyLinearVelocity = Vector3.zero
+					hrp.AssemblyAngularVelocity = Vector3.zero
 				end
 			end
 		end
@@ -92,6 +94,7 @@ end
 
 function FloorFall.play(context: RoundContract.RoundContext)
 	local roundDuration = (context.config and context.config.duration) or 75
+	local startingCount = #context.players
 	local living = {}
 	for _, player in ipairs(context.players) do
 		living[player.UserId] = player
@@ -211,8 +214,8 @@ function FloorFall.play(context: RoundContract.RoundContext)
 		-- Eliminate fallen players
 		checkEliminations()
 
-		-- Last standing wins
-		if getAliveCount() <= 1 then
+		-- Last standing wins (solo-safe: skip for single-player, runs to timeout)
+		if startingCount > 1 and getAliveCount() <= 1 then
 			local winner = nil
 			for userId, _ in pairs(living) do
 				winner = userId
