@@ -9,19 +9,19 @@ local LobbyHubConfig = {
 	},
 	satellitePads = {
 		{
-			position = Vector3.new(30, 0, 0),
+			position = Vector3.new(17, 0, 0),
 			size = Vector3.new(10, 2, 10),
 			material = Enum.Material.Concrete,
 			color = BrickColor.new("Medium stone grey"),
 		},
 		{
-			position = Vector3.new(-15, 0, 26),
+			position = Vector3.new(-17, 0, 0),
 			size = Vector3.new(10, 2, 10),
 			material = Enum.Material.Concrete,
 			color = BrickColor.new("Medium stone grey"),
 		},
 		{
-			position = Vector3.new(-15, 0, -26),
+			position = Vector3.new(0, 0, 17),
 			size = Vector3.new(10, 2, 10),
 			material = Enum.Material.Concrete,
 			color = BrickColor.new("Medium stone grey"),
@@ -33,13 +33,18 @@ local LobbyHubConfig = {
 		material = Enum.Material.Metal,
 		color = BrickColor.new("Bright blue"),
 	},
+	spawn = {
+		size = Vector3.new(4, 1, 4),
+		material = Enum.Material.Grass,
+		color = BrickColor.new("Bright green"),
+	},
 	lobbySpawn = CFrame.new(0, 1.5, 0),
 	spawnPoints = {
 		Vector3.new(0, 1.5, 0),
-		Vector3.new(10, 1.5, 0),
-		Vector3.new(-10, 1.5, 0),
-		Vector3.new(0, 1.5, 10),
-		Vector3.new(0, 1.5, -10),
+		Vector3.new(6, 1.5, 0),
+		Vector3.new(-6, 1.5, 0),
+		Vector3.new(0, 1.5, 6),
+		Vector3.new(0, 1.5, -6),
 	},
 }
 return LobbyHubConfig

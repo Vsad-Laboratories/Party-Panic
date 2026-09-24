@@ -48,6 +48,7 @@ function LobbyHub.init()
 	spawn.CFrame = config.lobbySpawn
 	spawn.Size = Vector3.new(4, 1, 4)
 	spawn.Material = Enum.Material.Grass
+	spawn.Anchored = true
 	spawn.BrickColor = BrickColor.new("Bright green")
 	spawn.Name = "LobbySpawn"
 	spawn.Parent = Workspace
