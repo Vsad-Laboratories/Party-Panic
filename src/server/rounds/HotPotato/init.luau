@@ -11,6 +11,7 @@ local RoundContract = require(game.ReplicatedStorage.Shared.RoundContract)
 
 local config = require(script.config)
 local potato = require(script.potato)
+local platform = require(script.platform)
 
 local HotPotato = {}
 
@@ -21,6 +22,7 @@ HotPotato._heartbeatConn = nil
 
 function HotPotato.setup(context: RoundContract.RoundContext)
 	potato.create()
+	platform.create()
 
 	HotPotato._timer = config.initialTimer
 	HotPotato._waveElapsed = 0
@@ -68,6 +70,7 @@ function HotPotato.play(context: RoundContract.RoundContext)
 			HotPotato._heartbeatConn = nil
 		end
 		potato.destroy()
+		platform.destroy()
 		context.onRoundComplete({
 			winnerUserId = winner,
 			scores = {},
@@ -78,6 +81,16 @@ function HotPotato.play(context: RoundContract.RoundContext)
 		for userId, player in pairs(alive) do
 			if player.Parent == nil or player.Character == nil then
 				alive[userId] = nil
+			end
+		end
+	end
+
+	local function eliminateVoid()
+		for userId, player in pairs(alive) do
+			local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			if hrp and hrp.Position.Y < config.eliminateThreshold then
+				alive[userId] = nil
+				print("[PartyPanic] HotPotato: " .. player.Name .. " fell into void")
 			end
 		end
 	end
@@ -128,6 +141,7 @@ function HotPotato.play(context: RoundContract.RoundContext)
 		HotPotato._waveElapsed += dt
 
 		pruneGhosts()
+		eliminateVoid()
 
 		if HotPotato._waveElapsed >= HotPotato._timer then
 			if startingCount > 1 and getAliveCount() <= 1 then
@@ -168,6 +182,7 @@ function HotPotato.cleanup(context: RoundContract.RoundContext)
 		HotPotato._heartbeatConn = nil
 	end
 	potato.destroy()
+	platform.destroy()
 	HotPotato._timer = 0
 	HotPotato._waveElapsed = 0
 	print("[PartyPanic] HotPotato cleanup — " .. #context.players .. " players")

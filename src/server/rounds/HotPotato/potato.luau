@@ -7,7 +7,6 @@ local potato = {
 	part = nil,
 	holderUserId = nil,
 	touchConn = nil,
-	roundEnded = false,
 }
 
 function potato.create()
@@ -21,7 +20,6 @@ function potato.create()
 	potato.part.Parent = Workspace
 
 	potato.holderUserId = nil
-	potato.roundEnded = false
 end
 
 function potato.onTouch(handler)

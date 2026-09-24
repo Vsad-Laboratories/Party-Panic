@@ -17,6 +17,7 @@ local FloorConfig = {
 	tilesPerWave = 5,
 
 	yThreshold = 5,
+	fallbackDuration = 75,
 }
 
 return FloorConfig

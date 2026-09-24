@@ -16,7 +16,6 @@ local FloorFall = {}
 FloorFall._tiles = {}
 FloorFall._elapsed = 0
 FloorFall._nextWave = 0
-FloorFall._pendingDrops = {}
 FloorFall._roundEnded = false
 FloorFall._heartbeatConn = nil
 
@@ -25,7 +24,6 @@ function FloorFall.setup(context: RoundContract.RoundContext)
 	FloorFall._tiles = floor.tiles
 	FloorFall._elapsed = 0
 	FloorFall._nextWave = config.dropInterval
-	FloorFall._pendingDrops = {}
 	FloorFall._roundEnded = false
 
 	local placed = players.placeOnGrid(context.players, FloorFall._tiles)
@@ -34,7 +32,7 @@ function FloorFall.setup(context: RoundContract.RoundContext)
 end
 
 function FloorFall.play(context: RoundContract.RoundContext)
-	local roundDuration = (context.config and context.config.duration) or 75
+	local roundDuration = (context.config and context.config.duration) or config.fallbackDuration
 	local startingCount = #context.players
 	local living = {}
 	for _, player in ipairs(context.players) do
@@ -52,7 +50,6 @@ function FloorFall.play(context: RoundContract.RoundContext)
 		end
 		floor.cleanup()
 		FloorFall._tiles = {}
-		FloorFall._pendingDrops = {}
 		FloorFall._roundEnded = false
 		context.onRoundComplete({
 			winnerUserId = winner,
@@ -67,7 +64,6 @@ function FloorFall.play(context: RoundContract.RoundContext)
 	FloorFall._heartbeatConn = RunService.Heartbeat:Connect(function(dt)
 		FloorFall._elapsed = floor.elapsed + dt
 		floor.elapsed = FloorFall._elapsed
-		FloorFall._pendingDrops = floor.pendingDrops
 
 		-- Prune ghosts (disconnected or missing character) before any checks
 		players.pruneGhosts(living)
@@ -82,7 +78,6 @@ function FloorFall.play(context: RoundContract.RoundContext)
 		-- Wave drops (solo-safe: only when >1 player alive)
 		if players.getAliveCount(living) > 1 and FloorFall._elapsed >= FloorFall._nextWave then
 			FloorFall._nextWave += config.dropInterval
-			floor.nextWave = FloorFall._nextWave
 			dropWave()
 		end
 
@@ -98,7 +93,6 @@ function FloorFall.play(context: RoundContract.RoundContext)
 			endRound(winner)
 		end
 	end)
-	floor.heartbeatConn = FloorFall._heartbeatConn
 end
 
 function FloorFall.cleanup(context: RoundContract.RoundContext)
@@ -108,7 +102,6 @@ function FloorFall.cleanup(context: RoundContract.RoundContext)
 	end
 	floor.cleanup()
 	FloorFall._tiles = {}
-	FloorFall._pendingDrops = {}
 	FloorFall._roundEnded = false
 	print("[PartyPanic] FloorFall cleanup — " .. #context.players .. " players")
 end

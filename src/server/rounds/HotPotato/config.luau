@@ -1,7 +1,7 @@
 -- HotPotato config: pure data table for the pass-the-potato elimination round.
 -- Tuning edits this file, never code.
 local HotConfig = {
-	roundDuration = 45,
+	roundDuration = 60,
 	initialTimer = 6,
 	timerDecrement = 0.8,
 	minTimer = 1.5,
@@ -11,6 +11,9 @@ local HotConfig = {
 	eliminateThreshold = -50,
 	playerSpawnRadius = 15,
 	playerSpawnY = 16,
+	platformSize = Vector3.new(32, 1, 32),
+	platformY = 14,
+	platformColor = BrickColor.new("Dark stone grey"),
 }
 
 return HotConfig

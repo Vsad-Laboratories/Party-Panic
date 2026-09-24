@@ -7,15 +7,12 @@ local config = require(script.Parent.config)
 local floor = {
 	tiles = {},
 	elapsed = 0,
-	nextWave = 0,
 	pendingDrops = {},
-	heartbeatConn = nil,
 }
 
 function floor.build()
 	floor.tiles = {}
 	floor.elapsed = 0
-	floor.nextWave = config.dropInterval
 	floor.pendingDrops = {}
 
 	local offsetX = -((config.gridCols - 1) * config.tileSize) / 2
@@ -84,16 +81,7 @@ function floor.processPendingDrops()
 	end
 end
 
-function floor.advance(dt)
-	floor.elapsed += dt
-	floor.processPendingDrops()
-end
-
 function floor.cleanup()
-	if floor.heartbeatConn then
-		floor.heartbeatConn:Disconnect()
-		floor.heartbeatConn = nil
-	end
 	for _, rowTiles in pairs(floor.tiles) do
 		for _, tile in pairs(rowTiles) do
 			if tile and tile.part and tile.part.Parent then
