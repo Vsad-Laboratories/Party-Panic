@@ -16,9 +16,10 @@ function LobbyMachine.new()
 	local self = setmetatable({}, LobbyMachine)
 	self.state = "Waiting"
 	self.players = {}
-	self.currentRoundName = Constants.DefaultRound
+	self.currentRoundName = Constants.RoundRotation[1]
 	self.currentRound = nil
 	self.currentContext = nil
+	self.rotationIndex = 1
 	self.countdown = 0
 	self.tickAccumulator = 0
 	self.lastResult = nil
@@ -46,6 +47,8 @@ function LobbyMachine:_countdown()
 end
 
 function LobbyMachine:_startRound()
+	self.rotationIndex = (self.rotationIndex % #Constants.RoundRotation) + 1
+	self.currentRoundName = Constants.RoundRotation[self.rotationIndex]
 	local round = RoundRegistry.getRound(self.currentRoundName)
 	if not round then
 		print("[PartyPanic] round not found: " .. self.currentRoundName .. " — skipping to results")

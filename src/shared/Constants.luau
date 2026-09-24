@@ -3,7 +3,7 @@ local Constants = {
 	MinPlayers = 1,
 	CountdownSeconds = 10,
 	RoundDuration = 60,
-	DefaultRound = "FloorFall",
+	RoundRotation = { "FloorFall", "HotPotato" },
 }
 
 return Constants
