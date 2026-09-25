@@ -65,7 +65,7 @@ function LobbyHub.init()
 	local height = wall.height
 	-- Each part will be a rectangular box that approximates a section of the wall.
 	-- The width (tangential) of each part at the outer radius is approximately: (2 * pi * (innerRadius + thickness)) / count
-	-- But we'll use the average radius for simplicity.
+	-- Width is computed at the average radius instead of the outer radius.
 	local avgRadius = innerRadius + thickness / 2
 	local arcLength = (2 * math.pi * avgRadius) / count
 	local wallBaseY = 1 + height / 2 -- sitting on disc top (disc top at y=1)
@@ -76,13 +76,11 @@ function LobbyHub.init()
 		local z = avgRadius * math.sin(angle)
 		-- The part's size: radial thickness, height, and tangential width (arcLength)
 		local partSize = Vector3.new(thickness, height, arcLength)
-		-- But we are setting Position and Size, and the part is axis-aligned. We need to rotate it.
-		-- Then the part's local X is radial, local Y is up, local Z is tangential.
-		-- So we set Size = Vector3.new(thickness, height, arcLength) and then the part will extend:
-		--   in X: -thickness/2 to thickness/2 (radial)
-		--   in Y: -height/2 to height/2 (vertical)
-		--   in Z: -arcLength/2 to arcLength/2 (tangential)
-		-- This will give us a box that is tangential.
+		-- The CFrame rotation below aligns the axis-aligned box to the arc tangent.
+		-- After rotation, local X is radial, local Y is up, local Z is tangential:
+		--   X: -thickness/2 to thickness/2 (radial)
+		--   Y: -height/2 to height/2 (vertical)
+		--   Z: -arcLength/2 to arcLength/2 (tangential)
 		local part = Instance.new("Part")
 		part.Size = partSize
 		part.Position = Vector3.new(x, wallBaseY, z)
