@@ -71,38 +71,30 @@ function LobbyHub.init()
 	-- But we'll use the average radius for simplicity.
 	local avgRadius = innerRadius + thickness / 2
 	local arcLength = (2 * math.pi * avgRadius) / count
+	local wallBaseY = 1 + height / 2 -- sitting on disc top (disc top at y=1)
 	for i = 1, count do
 		local angle = (i - 1) * (2 * math.pi) / count
 		-- Position of the center of this wall section (at the average radius)
-		local x = avgRadius * math.cos(angle)
-		local z = avgRadius * math.sin(angle)
+		local x = avgRadius * math.sin(angle)
+		local z = avgRadius * math.cos(angle)
 		-- The part's size: radial thickness, height, and tangential width (arcLength)
 		local partSize = Vector3.new(thickness, height, arcLength)
 		-- The part's CFrame: we want it to be facing radially outward? Actually, we want the part to be oriented so that its width is tangential.
-		-- We'll create the part at (x, wallBaseY + height/2, z) and then rotate it so that its local X axis points radially outward?
+		-- We'll create the part at (x, wallBaseY, z) and then rotate it so that its local X axis points radially outward?
 		-- But we are setting Position and Size, and the part is axis-aligned. We need to rotate it.
-		-- We'll set the part's CFrame to: CFrame.new(x, wallBaseY + height/2, z) * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -arcLength/2)
+		-- We'll set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -arcLength/2)
 		-- Wait, we want the part to be tangential, so its length should be in the tangential direction.
 		-- We'll set the part's Size to (thickness, height, arcLength) and then rotate it so that its local Z axis points tangential?
-		-- Actually, we can set the part's CFrame to: CFrame.new(x, wallBaseY + height/2, z) * CFrame.Angles(0, -angle, 0)
+		-- Actually, we can set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0)
 		-- Then the part's local X is radial, local Y is up, local Z is tangential.
 		-- So we set Size = Vector3.new(thickness, height, arcLength) and then the part will extend:
 		--   in X: -thickness/2 to thickness/2 (radial)
 		--   in Y: -height/2 to height/2 (vertical)
 		--   in Z: -arcLength/2 to arcLength/2 (tangential)
 		-- This will give us a box that is tangential.
-		local wallBaseY = 1 + wall.height / 2 -- sitting on disc top (disc top at y=1)
 		local part = Instance.new("Part")
 		part.Size = partSize
-		part.Position = Vector3.new(x, wallBaseY + height / 2, z) -- Wait, we already added height/2? Let's recalc.
-		-- Actually, we want the part's center to be at (x, wallBaseY, z) where wallBaseY is the height from floor to the center of the wall part.
-		-- We want the wall to sit on the disc top (y=1). The wall part's bottom should be at y=1, so its center should be at y = 1 + height/2.
-		-- So we set part.Position = Vector3.new(x, 1 + height/2, z)
-		-- But we also need to offset radially? No, the x,z we computed is at the average radius, which is the center of the part in the radial direction?
-		-- The part's size in radial direction is thickness, so we want the part to extend from radius innerRadius to innerRadius+thickness.
-		-- The average radius is innerRadius + thickness/2, which is exactly what we used for x,z. So the part's center is at that average radius.
-		-- So we set part.Position = Vector3.new(x, 1 + height/2, z)
-		part.Position = Vector3.new(x, 1 + height / 2, z)
+		part.Position = Vector3.new(x, wallBaseY, z)
 		part.Material = wall.material
 		part.Color = wall.color
 		part.Anchored = true
@@ -120,18 +112,16 @@ function LobbyHub.init()
 	height = rim.height
 	-- The rim sits on top of the wall.
 	local rimBaseY = 1 + wall.height + height / 2 -- bottom of rim at top of wall (y=1+wall.height), so center at that plus height/2
+	local avgRadius = innerRadius + thickness / 2
+	local arcLength = (2 * math.pi * avgRadius) / count
 	for i = 1, count do
 		local angle = (i - 1) * (2 * math.pi) / count
-		local x = avgRadius * math.cos(angle)
-		local z = avgRadius * math.sin(angle)
+		local x = avgRadius * math.sin(angle)
+		local z = avgRadius * math.cos(angle)
 		local partSize = Vector3.new(thickness, height, arcLength)
 		local part = Instance.new("Part")
 		part.Size = partSize
-		part.Position = Vector3.new(x, rimBaseY, z) -- Wait, we need to compute rimBaseY correctly.
-		-- Actually, we want the rim to sit on top of the wall. The wall top is at y = 1 + wall.height.
-		-- So the rim's bottom should be at y = 1 + wall.height.
-		-- Therefore, the rim's center should be at y = (1 + wall.height) + height/2.
-		part.Position = Vector3.new(x, (1 + wall.height) + height / 2, z)
+		part.Position = Vector3.new(x, rimBaseY, z)
 		part.Material = rim.material
 		part.Color = rim.color
 		part.Anchored = true
