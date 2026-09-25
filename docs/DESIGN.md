@@ -21,8 +21,8 @@ Astro navy palette governs minigame maps + UI.
   3 glowing ring pads (teal / white / yellow).
 - **Left 45°: Storefront Avenue** — 3 stalls w/ striped awnings + large holo screens above
   (ring / sparkle / avatar icons), floating label "The Storefront Avenue".
-- **Right 45°: Battle Pass Grotto** — elevated rocky platform, glowing crown on pedestal, locked gate,
-  neon sign "REQUIRES LVL 50 / 7-DAY ACCESS", floating label.
+- **Right 45°: Party Pass Grotto** (was "Battle Pass" — concept removed) — elevated rocky platform, glowing crown on pedestal, locked gate,
+  neon pass-themed sign (e.g. "PARTY PASS — PREMIUM VAULT"), floating label "The Party Pass Grotto".
 - **Front (at feet): AFK & Coin Obby Arena** — colorful parkour tile strip (pink/yellow/cyan/purple,
   ladder, platforms) along the near wall.
 - **Rear: Winner Podium** (small; not in the image — from specialist flow) flanking the vote circle's back.
@@ -63,3 +63,41 @@ Primitive shapes, emissive outlines, instantly readable silhouettes — no hyper
 
 - Specialist offered exact Vector3 dimensions per system — accept when dispatching each map PR.
 - Wishlist Station + spectator/bridge mechanics → GDD backlog (see Vision).
+
+## Lobby screen layout (UI — binding, Operator 2026-09-25)
+
+- **LEFT column** (top→down): Inventory, Shop, Settings, Party Pass, Packs — rounded-corner squares,
+  generous size, colorful distinct backgrounds.
+- **RIGHT column** (top→down): MiniGames, Maps, Stats — same shape language.
+- **BOTTOM MIDDLE**: level progress bar; above its LEFT end = coin icon + count; above its RIGHT end =
+  active perk/effect chips (e.g. "Bloody Aura: 5x Coins") — compact, never dominating the view.
+- Buttons open their UIs via a shared router (`ui/router.luau`, empty entries = no-op until built).
+
+## UI inventory (10 screens — Operator specs)
+
+| UI | Spec |
+|---|---|
+| Inventory | Tabbed: **Items, Aura, Effects, GiftPass, Perks, Packs** — equip / unequip / manipulate owned items |
+| Shop | Marketplace: buy / sell / trade; **sell-back to system BELOW buy price** (Operator example has math off: buy 1M → "sell 8.9M" — intended ≈890K / 89%; ratio to confirm) |
+| Settings | Universal game settings, allowed ranges only |
+| Party Pass | Horizontal scrollable grid: days, item names, claim buttons, locked states; daily rewards + purchasable premium tier |
+| Packs | Bundle offers (e.g. Starter Pack: 10K coins + starter aura) |
+| Map UI | Teleport hub: Lobby, MiniGames, Voting, Stats… + rounded-rect **Vote Map** button (concepts revealed per update) |
+| Minigame UI | Search minigames → teleport to that game's lobby |
+| Stats | 1-month history: playtime, coins, level, spending, earning, wins, losses, trades, buys, sells |
+| Game Vote UI | Poll: community votes the next update's new minigame (published ~5 days after each update) |
+
+## Round-start model (Operator — replaces lobby vote-start; supersedes PRD §round cycle)
+
+- Dedicated **Rounds Field** world: every minigame = a physical **stall** — big banner name + small
+  boundary (game-stall style).
+- Stall offers **variant slots** (e.g. Hot Potato: 1v4 / 1v8 / 2v12).
+- Player picks a variant → UI lists **live running games** → join the current instance or queue →
+  round starts when capacity fills. **No timers, no auto-join.** Lobby = social hub (free roam only).
+
+## Systems (Operator 2026-09-25 PM)
+
+- **Party Pass REPLACES Battle Pass** — Free-Fire-style monthly pass: daily free rewards, purchasable
+  premium tier, new pass every month. Lobby zone renamed (above); GDD + PRD to follow.
+- **Game Votes** — live-ops poll cadence: update ships → ~5 days later poll opens for the next
+  update's minigame.
