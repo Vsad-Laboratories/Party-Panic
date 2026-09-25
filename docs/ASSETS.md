@@ -28,6 +28,8 @@ Never hardcode asset IDs in code — maps reference entries from here via their 
 | 11202760067 | Winner podium | podium / crown fanfare |
 | 13815846729 | Balloons | lobby decor ambience |
 | 2068591214 | Confetti cannon | intermission burst |
+| 138567614125924 | Button pop click | every button press/click (PC + mobile tap) |
+| 127105730240202 | Keyboard click | every button hover (PC) |
 
 ### Models (geometry dressing)
 
