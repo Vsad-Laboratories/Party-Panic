@@ -28,6 +28,8 @@ Astro navy palette governs minigame maps + UI.
 - **Rear: Winner Podium** (small; not in the image — from specialist flow) flanking the vote circle's back.
 - **Rule: all 5 systems within 40 studs of spawn** (anti-wander + mobile render). Floating zone labels
   above each zone as in the image (part/Billboard labels, Phase A buildable).
+- **Lighting (lobby-owned):** bright soft daylight per the reference image — pale sky, gentle
+  atmosphere, no lens flare; set by `LobbyHub` at boot, original Lighting restored in `cleanup()`.
 
 ## Landmark styles (specialist round 5b — minigame maps)
 
