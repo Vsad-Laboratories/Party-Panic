@@ -63,10 +63,7 @@ function LobbyHub.init()
 	local innerRadius = wall.innerRadius
 	local thickness = wall.thickness
 	local height = wall.height
-	-- We'll create the wall as a series of parts, each covering an arc of 360/count degrees
 	-- Each part will be a rectangular box that approximates a section of the wall.
-	-- We'll place each part so that its outer face is at radius innerRadius + thickness/2? Actually, we want the wall to be a hollow cylinder.
-	-- We'll make each part a box that is thick in the radial direction, tall, and wide in the tangential direction.
 	-- The width (tangential) of each part at the outer radius is approximately: (2 * pi * (innerRadius + thickness)) / count
 	-- But we'll use the average radius for simplicity.
 	local avgRadius = innerRadius + thickness / 2
@@ -79,13 +76,7 @@ function LobbyHub.init()
 		local z = avgRadius * math.sin(angle)
 		-- The part's size: radial thickness, height, and tangential width (arcLength)
 		local partSize = Vector3.new(thickness, height, arcLength)
-		-- The part's CFrame: we want it to be facing radially outward? Actually, we want the part to be oriented so that its width is tangential.
-		-- We'll create the part at (x, wallBaseY, z) and then rotate it so that its local X axis points radially outward?
 		-- But we are setting Position and Size, and the part is axis-aligned. We need to rotate it.
-		-- We'll set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -arcLength/2)
-		-- Wait, we want the part to be tangential, so its length should be in the tangential direction.
-		-- We'll set the part's Size to (thickness, height, arcLength) and then rotate it so that its local Z axis points tangential?
-		-- Actually, we can set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0)
 		-- Then the part's local X is radial, local Y is up, local Z is tangential.
 		-- So we set Size = Vector3.new(thickness, height, arcLength) and then the part will extend:
 		--   in X: -thickness/2 to thickness/2 (radial)
