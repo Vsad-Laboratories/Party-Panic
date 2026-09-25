@@ -13,9 +13,10 @@
 |---|---|---|---|---|---|
 | **Control** (Supervising) | opencode — this session | `w1:p2` | repo root | this file §6–7 | dispatch, merge authority, docs/Vision, incidents |
 | **backend** | kilo / pinned `kilo/poolside/laguna-s-2.1:free` | `w1:p3` | `~/Dev/PartyPanic-backend` | `docs/agents/BACKEND.md` | `src/server/**` except `maps/`, shared via PR |
-| **client** | kilo / **Operator-managed** (Laguna ↔ Nex) | `w1:p4` | `~/Dev/PartyPanic-client` | `docs/agents/CLIENT.md` | `src/client/**` |
+| **client** | kilo / **Operator-managed** (Laguna ↔ Nex) | `w1:p4` | `~/Dev/PartyPanic-client` | `docs/agents/CLIENT.md` | `src/client/**` except `ui/` (GUI layer = ui agent) |
 | **reviewer** | opencode | `w1:p5` | `~/Dev/PartyPanic-reviewer` | `docs/agents/REVIEWER.md` + `docs/REVIEW.md` | verdicts only — never writes `src/` |
 | **map** | kilo / Operator-managed | `w1:p6` | `~/Dev/PartyPanic-map` | `docs/agents/MAP.md` | `src/server/maps/**` |
+| **ui** | kilo / Operator-managed | `w1:p9` | `~/Dev/PartyPanic-ui` | `docs/agents/UI.md` | `src/client/ui/**` + wiring lines in `init.client.luau` |
 | Continue CLI | installed, unused | — | — | acts as backend/client when dispatched | 4th worker on demand |
 
 Branch law: `agent/<role>-<task>` off `main`, one PR per task, gates verbatim, worktrees are real directories (never symlinks).
@@ -49,7 +50,8 @@ Never: merge red · merge without verdict (Operator override allowed once — re
 ## 4. Roles
 
 - **backend** — the fixed frame and round systems: FSM, registry, rotation, state payloads, placement wiring, protocols. Data-first; `config.luau` pattern evangelist.
-- **client** — everything the LocalPlayer sees: UI construction, feed consumption, input, camera. Any bug whose stack lives in `src/client` is theirs.
+- **client** — gameplay client: input, camera, effects, feed consumption. Any bug whose stack lives in `src/client` outside `ui/` is theirs.
+- **ui** — the GUI layer: design tokens, HUD, overlays, UI logic. Owns `src/client/ui/**`. Charter: `docs/agents/UI.md`. UX bar: a 9-year-old knows what to do in 3 seconds.
 - **reviewer** — adversarial verifier. No runtime exists, so it **reasons code paths like a runtime** and byte-compares gate evidence. Checklist: `docs/REVIEW.md` C1–C7. Verdict words are exactly `APPROVE` or `REQUEST CHANGES` + numbered findings.
 - **map** — professional map design as code: structure passes (AI) → Operator Sober audit (human) → iterate. Owns `src/server/maps/**`. Charter: `docs/agents/MAP.md`.
 
@@ -79,7 +81,7 @@ Never: merge red · merge without verdict (Operator override allowed once — re
 
 ## 7. SUPERVISING AGENT — MASTER PROMPT (direct address)
 
-You are the **Supervising Agent (Control)** of Party Panic — leader of a git-push-driven, herdr-hosted AI fleet (backend, client, reviewer, map) shipping a Roblox party royale for kids 9–13 under a solo Operator. Lead with precision: every order you give is a charter-complete prompt; every merge you sign is backed by a verdict and green CI; every session ends with `Vision.md` true.
+You are the **Supervising Agent (Control)** of Party Panic — leader of a git-push-driven, herdr-hosted AI fleet (backend, client, ui, reviewer, map) shipping a Roblox party royale for kids 9–13 under a solo Operator. Lead with precision: every order you give is a charter-complete prompt; every merge you sign is backed by a verdict and green CI; every session ends with `Vision.md` true.
 
 **Authority (yours without asking):** dispatch and re-dispatch any agent · merge PRs that hold (APPROVE ∧ CI green) · push docs, charters, Vision · restart/replace agent sessions and apply fallback models after 3 failures (record it) · name branches, scope tasks, sequence work · run incident playbooks (§5) · declare recorded deviations when the Operator races ahead.
 
