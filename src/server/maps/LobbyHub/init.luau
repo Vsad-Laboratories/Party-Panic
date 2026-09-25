@@ -69,22 +69,22 @@ function LobbyHub.init()
 	-- We'll make each part a box that is thick in the radial direction, tall, and wide in the tangential direction.
 	-- The width (tangential) of each part at the outer radius is approximately: (2 * pi * (innerRadius + thickness)) / count
 	-- But we'll use the average radius for simplicity.
-	local avgRadius = innerRadius + thickness / 2
+	local avgRadius = innerRadius + thickness/2
 	local arcLength = (2 * math.pi * avgRadius) / count
-	local wallBaseY = 1 + height / 2 -- sitting on disc top (disc top at y=1)
+	local wallBaseY = 1 + height/2 -- sitting on disc top (disc top at y=1)
 	for i = 1, count do
 		local angle = (i - 1) * (2 * math.pi) / count
 		-- Position of the center of this wall section (at the average radius)
-		local x = avgRadius * math.sin(angle)
-		local z = avgRadius * math.cos(angle)
+		local x = avgRadius * math.cos(angle)
+		local z = avgRadius * math.sin(angle)
 		-- The part's size: radial thickness, height, and tangential width (arcLength)
 		local partSize = Vector3.new(thickness, height, arcLength)
 		-- The part's CFrame: we want it to be facing radially outward? Actually, we want the part to be oriented so that its width is tangential.
-		-- We'll create the part at (x, wallBaseY, z) and then rotate it so that its local X axis points radially outward?
+		-- We'll create the part at (x, wallBaseY, z) and then rotate it so that its local X axis points radially outward? 
 		-- But we are setting Position and Size, and the part is axis-aligned. We need to rotate it.
-		-- We'll set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -arcLength/2)
+		-- We'll set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0) * CFrame.new(0, 0, -arcLength/2) 
 		-- Wait, we want the part to be tangential, so its length should be in the tangential direction.
-		-- We'll set the part's Size to (thickness, height, arcLength) and then rotate it so that its local Z axis points tangential?
+		-- We'll set the part's Size to (thickness, height, arcLength) and then rotate it so that its local Z axis points tangential? 
 		-- Actually, we can set the part's CFrame to: CFrame.new(x, wallBaseY, z) * CFrame.Angles(0, -angle, 0)
 		-- Then the part's local X is radial, local Y is up, local Z is tangential.
 		-- So we set Size = Vector3.new(thickness, height, arcLength) and then the part will extend:
@@ -111,14 +111,14 @@ function LobbyHub.init()
 	thickness = rim.thickness
 	height = rim.height
 	-- The rim sits on top of the wall.
-	local rimBaseY = 1 + wall.height + height / 2 -- bottom of rim at top of wall (y=1+wall.height), so center at that plus height/2
-	local avgRadius = innerRadius + thickness / 2
-	local arcLength = (2 * math.pi * avgRadius) / count
+	local rimBaseY = 1 + wall.height + height/2 -- bottom of rim at top of wall (y=1+wall.height), so center at that plus height/2
+	local rimAvgRadius = innerRadius + thickness/2
+	local rimArcLength = (2 * math.pi * rimAvgRadius) / count
 	for i = 1, count do
 		local angle = (i - 1) * (2 * math.pi) / count
-		local x = avgRadius * math.sin(angle)
-		local z = avgRadius * math.cos(angle)
-		local partSize = Vector3.new(thickness, height, arcLength)
+		local x = rimAvgRadius * math.cos(angle)
+		local z = rimAvgRadius * math.sin(angle)
+		local partSize = Vector3.new(thickness, height, rimArcLength)
 		local part = Instance.new("Part")
 		part.Size = partSize
 		part.Position = Vector3.new(x, rimBaseY, z)
