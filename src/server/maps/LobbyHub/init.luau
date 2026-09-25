@@ -194,8 +194,18 @@ function LobbyHub.init()
 		end
 	end
 
-	-- Lighting setup (cozy low-poly daylight)
+	-- Lighting setup (cozy low-poly daylight) and store original values
 	local Lighting = game:GetService("Lighting")
+	LobbyHub._originalLighting = {
+		Brightness = Lighting.Brightness,
+		Ambient = Lighting.Ambient,
+		OutdoorAmbient = Lighting.OutdoorAmbient,
+		TimeOfDay = Lighting.TimeOfDay,
+		EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+		EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
+		GlobalShadows = Lighting.GlobalShadows,
+		ShadowSoftness = Lighting.ShadowSoftness,
+	}
 	Lighting.Brightness = 2
 	Lighting.Ambient = Color3.fromRGB(150, 150, 150)
 	Lighting.OutdoorAmbient = Color3.fromRGB(180, 180, 200)
@@ -210,6 +220,13 @@ function LobbyHub.init()
 		Atmosphere = Instance.new("Atmosphere")
 		Atmosphere.Parent = Lighting
 	end
+	LobbyHub._originalAtmosphere = {
+		Density = Atmosphere.Density,
+		Offset = Atmosphere.Offset,
+		Color = Atmosphere.Color,
+		Glare = Atmosphere.Glare,
+		Haze = Atmosphere.Haze,
+	}
 	Atmosphere.Density = 0.3
 	Atmosphere.Offset = 0.25
 	Atmosphere.Color = Color3.fromRGB(190, 200, 255)
@@ -237,6 +254,22 @@ function LobbyHub.cleanup()
 		LobbyHub._spawnLocation:Destroy()
 	end
 	LobbyHub._spawnLocation = nil
+	-- Restore original lighting
+	if LobbyHub._originalLighting then
+		local Lighting = game:GetService("Lighting")
+		for k, v in pairs(LobbyHub._originalLighting) do
+			Lighting[k] = v
+		end
+	end
+	if LobbyHub._originalAtmosphere then
+		local Lighting = game:GetService("Lighting")
+		local Atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+		if Atmosphere then
+			for k, v in pairs(LobbyHub._originalAtmosphere) do
+				Atmosphere[k] = v
+			end
+		end
+	end
 end
 
 return LobbyHub
