@@ -1,19 +1,11 @@
--- RoundRegistry: resolves round names to ModuleScripts in the rounds folder.
--- Adding a round = drop a ModuleScript (or directory with init.luau) in
--- src/server/rounds/. Rojo's init rule makes directories act as ModuleScripts,
--- so games are now expanded directory/module hierarchies (Operator rule).
--- No FSM or registry edit needed — just drop the folder/module.
-local RoundsFolder = game.ServerScriptService.Server:WaitForChild("rounds")
-
+-- RoundRegistry: round name resolution.
+-- Minigame scaffolding deleted (Operator directive: free-roam lobby until maps
+-- are rebuilt one by one). Registry is an empty no-op — no rounds/ folder exists.
+-- When the Operator confirms rounds return, restore the FindFirstChild require path.
 local RoundRegistry = {}
 
-function RoundRegistry.getRound(name: string)
-	local module = RoundsFolder:FindFirstChild(name)
-	if not module then
-		warn("[PartyPanic] round module not found: " .. name)
-		return nil
-	end
-	return require(module)
+function RoundRegistry.getRound(_name: string)
+	return nil
 end
 
 return RoundRegistry
