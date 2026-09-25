@@ -3,14 +3,25 @@
 -- height-offset math so characters stand on (not fall through) the lobby disc.
 
 local LobbyHubConfig = require(game.ServerScriptService.Server.maps.LobbyHub.config)
-local spawnPoints = LobbyHubConfig.spawnPoints
+
+-- Defensive: spawnPoints nil OR empty → fall back to lobbySpawn.Position as
+-- the single anchor (makes lobbySpawn a real reader). Prevents #nil throws in
+-- _nextSlot/computeTargetPos and avoids _slot % 0 NaN on empty tables.
+local spawnPoints = LobbyHubConfig.spawnPoints or {}
+local lobbySpawn = LobbyHubConfig.lobbySpawn
+local fallbackPoint
+if #spawnPoints == 0 and lobbySpawn ~= nil then
+	fallbackPoint = Vector3.new(lobbySpawn.Position.X, lobbySpawn.Position.Y, lobbySpawn.Position.Z)
+end
 
 local Placements = {}
 Placements._slot = 0
 Placements._characterAddedConn = {}
-Placements._state = "Waiting"
 
 function Placements:_nextSlot()
+	if #spawnPoints == 0 then
+		return fallbackPoint
+	end
 	Placements._slot = (Placements._slot % #spawnPoints) + 1
 	return spawnPoints[Placements._slot]
 end
@@ -20,6 +31,7 @@ end
 -- placing HRP at spawnPoint.y=1.5 puts feet at ~-0.5 (below disc) → free-fall.
 -- Fix: target HRP.y = spawnPoint.y + (charHeight / 2) so feet land at ~y=1.5
 -- (0.5 studs above disc top — character rests on disc).
+-- Guard: halfHeight covers GetExtentsSize anomalies (<0.5 or >10 → fallback 2.5)
 local function computeTargetPos(spawnPoint, character)
 	local charSize = character:GetExtentsSize()
 	local halfHeight = charSize.Y / 2
