@@ -11,10 +11,35 @@ highlights neon pink `fromRGB(255,63,164)` + canary `fromRGB(255,225,77)` = inte
 
 ## Lobby layout (LobbyHub Phase A — binding)
 
-- Spawn disc faces **NORTH**; player's first view = STATUS screen + Map Voting circle dead ahead.
-- Left 45°: **Storefront Avenue** (3D shop shells). Right 45°: elevated **Battle Pass Grotto**.
-- Rear 180°: **Winner Podium**, flanked by the **AFK & Coin Obby** entry at the player's feet.
-- Perimeter wraps tightly around the disc; all 5 systems **within 40 studs of spawn**.
+Ground truth = Operator's **`LobbyMap Reference.jpg`** (repo root). Lobby follows the reference image;
+Astro navy palette governs minigame maps + UI.
+
+- **Floor: grass green** (~`fromRGB(106,190,75)`), not navy. Curved **slate-blue perimeter wall with a
+  green top rim**, wrapping ~270°; rocks, low-poly pines, planters scattered along it. Open airy sky.
+- **Center: spawn disc (Center Hub Spawn Ring)** facing **NORTH** — first view = big **STATUS screen**
+  on the wall ("STATUS: INTERMISSION (15s)") with the **Map Voting circle** right below:
+  3 glowing ring pads (teal / white / yellow).
+- **Left 45°: Storefront Avenue** — 3 stalls w/ striped awnings + large holo screens above
+  (ring / sparkle / avatar icons), floating label "The Storefront Avenue".
+- **Right 45°: Battle Pass Grotto** — elevated rocky platform, glowing crown on pedestal, locked gate,
+  neon sign "REQUIRES LVL 50 / 7-DAY ACCESS", floating label.
+- **Front (at feet): AFK & Coin Obby Arena** — colorful parkour tile strip (pink/yellow/cyan/purple,
+  ladder, platforms) along the near wall.
+- **Rear: Winner Podium** (small; not in the image — from specialist flow) flanking the vote circle's back.
+- **Rule: all 5 systems within 40 studs of spawn** (anti-wander + mobile render). Floating zone labels
+  above each zone as in the image (part/Billboard labels, Phase A buildable).
+
+## Landmark styles (specialist round 5b — minigame maps)
+
+Primitive shapes, emissive outlines, instantly readable silhouettes — no hyper-detail (low-poly law).
+
+- **Astro-Cozy**: *Capsule Outpost* = half-buried rocket pod, glowing teal windows → LOS blocker;
+  *Radar Array* = 3 oversized satellite dishes, neon-pink rim trim → platforming steps.
+- **Arcade-Cabinet**: *Retro Gateway* = arcade-shell archway / neon portal ring at choke points →
+  audio stinger; *Holographic Pixel Monoliths* = stacked glass cubes w/ floating 8-bit icons →
+  spatial anchors ("Meet at the Pink Star Pillar").
+- **Interactive Vibe**: *Overdrive Core* = floating reactor, ring pulses Green→Yellow→Pink as the
+  round timer drains → visual pacing clock (replaces staring at UI timer).
 
 ## Minigame map centerpieces (one per map)
 

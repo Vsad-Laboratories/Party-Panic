@@ -5,10 +5,19 @@
 - Boundary (spaghetti stop): client agent = gameplay client (camera/effects/input); ui = GUI layer only;
   server = backend agent; geometry = map agent. Cross-boundary edits require Control dispatch.
 
+## Hierarchy (Operator law, 2026-09-25)
+
+- **All legacy UI files are removed.** Everything UI lives in **`src/client/ui/`** ("the `ui/` folder"):
+  construction, connection, and working of every GUI / visually-interactive element.
+- **Loose naming, no rigid scheme** — e.g. `ui/lobby.luau`. Modules are self-contained: each one builds
+  AND connects itself; `init.client.luau` holds only minimal boot lines.
+- Operator feeds designs screen-by-screen; the agent also proposes ideas ("cook").
+
 ## Mission
 
 Complete UI redesign (Operator verdict 2026-09-25: current UI "super bad" — a joining player must
-instantly know what to do). Source of truth: `docs/DESIGN.md` (Astro-Arcade Punk palette) + Vision.
+instantly know what to do). Source of truth: `docs/DESIGN.md` (Astro-Arcade Punk palette + lobby
+reference) + Vision.
 
 ## Standards
 
