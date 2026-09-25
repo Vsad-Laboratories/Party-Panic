@@ -260,7 +260,7 @@ function Lobby._build(self: Lobby)
 	coinIcon.Position = UDim2.fromScale(0.235, 0.86)
 	coinIcon.Size = UDim2.fromScale(0.034, 0.034)
 	coinIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	coinIcon.BackgroundColor3 = tokens.palette.canary
+	coinIcon.BackgroundColor3 = tokens.palette.text
 	coinIcon.BorderSizePixel = 0
 	newUICorner(tokens.radii.full).Parent = coinIcon
 
@@ -302,7 +302,7 @@ function Lobby._build(self: Lobby)
 	perkChip.Position = UDim2.fromScale(0.765, 0.86)
 	perkChip.Size = UDim2.fromScale(0.22, 0.036)
 	perkChip.AnchorPoint = Vector2.new(0.5, 0.5)
-	perkChip.BackgroundColor3 = tokens.palette.pink
+	perkChip.BackgroundColor3 = tokens.palette.text
 	perkChip.BorderSizePixel = 0
 	newUICorner(tokens.radii.md).Parent = perkChip
 
