@@ -17,7 +17,7 @@ local LobbyHubConfig = {
 		color = Color3.fromRGB(95, 227, 211), -- accent soft teal/cyan
 	},
 	-- Lobby spawn CFrame (position on central disc top)
-	lobbySpawn = CFrame.new(0, 1, 0), -- half thickness above disc center
+	lobbySpawn = CFrame.new(0, 1, 0), -- half thickness above disc center (disc top at y=1)
 	-- Walkable spawn points (on central disc top, inset from edge)
 	spawnPoints = {
 		Vector3.new(0, 1, 0),
@@ -49,7 +49,7 @@ local LobbyHubConfig = {
 	storefrontAvenue = {
 		{
 			-- Booth 1
-			position = Vector3.new(-10, 2, 17.32), -- 30 deg west of north: x = -20*sin(30)= -10, z=20*cos(30)=17.32
+			position = Vector3.new(-10, 1, 17.32), -- 30 deg west of north: x = -20*sin(30)= -10, z=20*cos(30)=17.32
 			size = Vector3.new(8, 6, 8),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
@@ -57,7 +57,7 @@ local LobbyHubConfig = {
 		},
 		{
 			-- Booth 2
-			position = Vector3.new(-14.14, 2, 14.14), -- 45 deg west of north: x = -20*sin(45)= -14.14, z=20*cos(45)=14.14
+			position = Vector3.new(-14.14, 1, 14.14), -- 45 deg west of north: x = -20*sin(45)= -14.14, z=20*cos(45)=14.14
 			size = Vector3.new(8, 6, 8),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(255, 225, 77),
@@ -65,28 +65,35 @@ local LobbyHubConfig = {
 		},
 		{
 			-- Booth 3
-			position = Vector3.new(-17.32, 2, 10), -- 60 deg west of north: x = -20*sin(60)= -17.32, z=20*cos(60)=10
+			position = Vector3.new(-17.32, 1, 10), -- 60 deg west of north: x = -20*sin(60)= -17.32, z=20*cos(60)=10
 			size = Vector3.new(8, 6, 8),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(255, 225, 77),
 			name = "StorefrontBooth3",
 		},
 	},
-	-- Battle Pass Grotto (right flank): elevated rocky alcove + trophy pedestal at right 45° (north-east)
-	battlePassGrotto = {
+	-- Party Pass Grotto (right flank): elevated rocky alcove + trophy pedestal + gate sign at right 45° (north-east)
+	partyPassGrotto = {
 		alcove = {
-			position = Vector3.new(10, 2, 17.32), -- 30 deg east of north: x = 20*sin(30)=10, z=20*cos(30)=17.32
+			position = Vector3.new(10, 1, 17.32), -- 30 deg east of north: x = 20*sin(30)=10, z=20*cos(30)=17.32
 			size = Vector3.new(12, 10, 12),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(35, 43, 69), -- deep cosmic navy
-			name = "BattlePassAlcove",
+			name = "PartyPassAlcove",
 		},
 		pedestal = {
-			position = Vector3.new(10, 12, 17.32), -- on top of alcove (alcove height 10, so pedestal base at y=2+10=12)
+			position = Vector3.new(10, 11, 17.32), -- on top of alcove (alcove height 10, so pedestal base at y=1+10=11)
 			size = Vector3.new(6, 2, 6),
 			material = Enum.Material.Metal,
 			color = Color3.fromRGB(95, 227, 211), -- accent soft teal/cyan
 			name = "TrophyPedestal",
+		},
+		gateSign = {
+			position = Vector3.new(10, 1, 11.12), -- on the front face of the alcove (negative Z side), slightly outside
+			size = Vector3.new(4, 2, 0.2),
+			material = Enum.Material.Metal,
+			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
+			name = "PartyPassGateSign",
 		},
 	},
 	-- Map Voting circle center: 3 glowing floor pads + STATUS screen above (dead ahead, north)
@@ -94,7 +101,7 @@ local LobbyHubConfig = {
 		pads = {
 			{
 				-- Pad 1: west of north
-				position = Vector3.new(-10, 2, 17.32), -- 30 deg west of north
+				position = Vector3.new(-10, 1, 17.32), -- 30 deg west of north
 				size = Vector3.new(4, 0.2, 4),
 				material = Enum.Material.Neon,
 				color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
@@ -102,7 +109,7 @@ local LobbyHubConfig = {
 			},
 			{
 				-- Pad 2: due north
-				position = Vector3.new(0, 2, 20),
+				position = Vector3.new(0, 1, 20),
 				size = Vector3.new(4, 0.2, 4),
 				material = Enum.Material.Neon,
 				color = Color3.fromRGB(255, 225, 77),
@@ -110,7 +117,7 @@ local LobbyHubConfig = {
 			},
 			{
 				-- Pad 3: east of north
-				position = Vector3.new(10, 2, 17.32), -- 30 deg east of north
+				position = Vector3.new(10, 1, 17.32), -- 30 deg east of north
 				size = Vector3.new(4, 0.2, 4),
 				material = Enum.Material.Neon,
 				color = Color3.fromRGB(255, 225, 77),
@@ -128,21 +135,21 @@ local LobbyHubConfig = {
 	-- Winner Podium center: tiered podium (rear 180° = south)
 	winnerPodium = {
 		base = {
-			position = Vector3.new(0, 2, -20), -- due south
+			position = Vector3.new(0, 1, -20), -- due south
 			size = Vector3.new(12, 2, 12),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(106, 190, 75), -- grass green (same as floor)
 			name = "PodiumBase",
 		},
 		mid = {
-			position = Vector3.new(0, 4, -20), -- on top of base
+			position = Vector3.new(0, 3, -20), -- on top of base
 			size = Vector3.new(8, 2, 8),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(106, 190, 75),
 			name = "PodiumMid",
 		},
 		top = {
-			position = Vector3.new(0, 6, -20), -- on top of mid
+			position = Vector3.new(0, 5, -20), -- on top of mid
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(106, 190, 75),
@@ -155,21 +162,21 @@ local LobbyHubConfig = {
 		-- We'll put it at z = -18 (so 2 studs north of the Winner Podium which is at z=-20)
 		-- and from x = -15 to x = 15 in steps? We'll make three parts for simplicity.
 		{
-			position = Vector3.new(-15, 2, -18),
+			position = Vector3.new(-15, 1, -18),
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
 			name = "ObbyStripWest",
 		},
 		{
-			position = Vector3.new(0, 2, -18),
+			position = Vector3.new(0, 1, -18),
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(255, 225, 77),
 			name = "ObbyStripCenter",
 		},
 		{
-			position = Vector3.new(15, 2, -18),
+			position = Vector3.new(15, 1, -18),
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(255, 225, 77),

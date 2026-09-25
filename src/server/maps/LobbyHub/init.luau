@@ -136,9 +136,10 @@ function LobbyHub.init()
 		createPart(boothDesc)
 	end
 
-	-- Battle Pass Grotto
-	createPart(config.battlePassGrotto.alcove)
-	createPart(config.battlePassGrotto.pedestal)
+	-- Party Pass Grotto
+	createPart(config.partyPassGrotto.alcove)
+	createPart(config.partyPassGrotto.pedestal)
+	createPart(config.partyPassGrotto.gateSign)
 
 	-- Map Voting Circle
 	-- Glowing floor pads
