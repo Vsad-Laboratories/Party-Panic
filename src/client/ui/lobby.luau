@@ -27,15 +27,10 @@ type LobbyPayload = {
 
 local MAX_PLAYERS = 12
 
-type ButtonSpec = {
-	name: string,
-	label: string,
-	accent: Color3,
-}
-
 type Lobby = {
 	_screenGui: ScreenGui,
 	_uiScale: UIScale,
+	_background: Frame,
 	_playerCountLabel: TextLabel,
 	_coinCountLabel: TextLabel,
 	_levelFill: Frame,
@@ -175,7 +170,6 @@ function Lobby.new(): Lobby
 	self._screenGui.ResetOnSpawn = false
 	self._screenGui.IgnoreGuiInset = true
 	self._screenGui.DisplayOrder = 0
-	self._screenGui.Size = UDim2.fromScale(1, 1)
 	self._screenGui.Parent = playerGui
 
 	self._uiScale = Instance.new("UIScale")
@@ -186,7 +180,9 @@ function Lobby.new(): Lobby
 	self:_build()
 	self:_connect()
 
-	self._resizeConn = self._screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	-- Responsive scale is driven by the background GuiObject (ScreenGui is not a
+	-- GuiObject and has no AbsoluteSize), refreshed on resize — never per-frame.
+	self._resizeConn = self._background:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		self:_refreshScale()
 	end)
 	self:_refreshScale()
@@ -199,12 +195,12 @@ function Lobby._build(self: Lobby)
 	local p = tokens.palette
 
 	-- Full-bleed background
-	local background = Instance.new("Frame")
-	background.Name = "Background"
-	background.Parent = root
-	background.Size = UDim2.fromScale(1, 1)
-	background.BackgroundColor3 = p.navy
-	background.BorderSizePixel = 0
+	self._background = Instance.new("Frame")
+	self._background.Name = "Background"
+	self._background.Parent = root
+	self._background.Size = UDim2.fromScale(1, 1)
+	self._background.BackgroundColor3 = p.navy
+	self._background.BorderSizePixel = 0
 
 	-- Title + status (top-center)
 	newLabel(
@@ -353,7 +349,7 @@ local function computeScale(screenHeight: number): number
 end
 
 function Lobby._refreshScale(self: Lobby)
-	self._uiScale.Scale = computeScale(self._screenGui.AbsoluteSize.Y)
+	self._uiScale.Scale = computeScale(self._background.AbsoluteSize.Y)
 end
 
 local active: Lobby? = nil
