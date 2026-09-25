@@ -1,14 +1,16 @@
 --!strict
 -- lobby.luau — self-contained, self-connecting lobby HUD (Astro-Arcade Punk).
--- Builds ONE ScreenGui and connects to the server LobbyStateEvent feed; re-renders
--- on state signals only (no per-frame loops). Foundation skeleton: no vote UI,
--- no countdown UI — rounds start by player action (future task).
--- Source of truth: docs/DESIGN.md + docs/agents/UI.md.
+-- Builds ONE ScreenGui, connects to the server LobbyStateEvent feed, re-renders on
+-- state signals only (no per-frame loops). Implements the lobby screen layout from
+-- docs/DESIGN.md (LEFT/RIGHT nav columns + bottom level bar). No vote UI, no
+-- countdown UI — rounds start by player action (future task). Source: DESIGN.md +
+-- docs/agents/UI.md.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local tokens = require(script.Parent.tokens)
+local router = require(script.Parent.router)
 
 type PlayerInfo = {
 	userId: number,
@@ -25,10 +27,18 @@ type LobbyPayload = {
 
 local MAX_PLAYERS = 12
 
+type ButtonSpec = {
+	name: string,
+	label: string,
+	accent: Color3,
+}
+
 type Lobby = {
 	_screenGui: ScreenGui,
 	_uiScale: UIScale,
 	_playerCountLabel: TextLabel,
+	_coinCountLabel: TextLabel,
+	_levelFill: Frame,
 	_eventConn: RBXScriptConnection?,
 	_resizeConn: RBXScriptConnection?,
 	_build: (Lobby) -> (),
@@ -79,6 +89,73 @@ local function newLabel(
 	label.TextWrapped = true
 	label.TextStrokeTransparency = strokeTransparency or 1
 	return label
+end
+
+local function newButton(
+	name: string,
+	parent: Instance,
+	label: string,
+	position: UDim2,
+	size: UDim2,
+	accent: Color3
+): TextButton
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Parent = parent
+	button.Position = position
+	button.Size = size
+	button.AnchorPoint = Vector2.new(0.5, 0.5)
+	button.BackgroundColor3 = tokens.palette.navy
+	button.BorderSizePixel = 0
+	button.Font = tokens.fonts.body
+	button.Text = label
+	button.TextSize = tokens.textSizes.pill
+	button.TextColor3 = accent
+	button.TextScaled = true
+	button.TextWrapped = true
+	button.AutoButtonColor = true
+	newUICorner(tokens.radii.lg).Parent = button
+	newStroke(accent, 1, 0.55).Parent = button
+	return button
+end
+
+-- Lobby nav buttons (palette-safe: navy panels, teal/pink/canary accents) --------
+
+local LEFT_BUTTONS: { ButtonSpec } = {
+	{ name = "Inventory", label = "INVENTORY", accent = tokens.palette.accent },
+	{ name = "Shop", label = "SHOP", accent = tokens.palette.pink },
+	{ name = "Settings", label = "SETTINGS", accent = tokens.palette.canary },
+	{ name = "PartyPass", label = "PARTY PASS", accent = tokens.palette.accent },
+	{ name = "Packs", label = "PACKS", accent = tokens.palette.pink },
+}
+
+local RIGHT_BUTTONS: { ButtonSpec } = {
+	{ name = "MiniGames", label = "MINIGAMES", accent = tokens.palette.canary },
+	{ name = "Maps", label = "MAPS", accent = tokens.palette.accent },
+	{ name = "Stats", label = "STATS", accent = tokens.palette.pink },
+}
+
+local function buildColumn(
+	parent: Instance,
+	buttons: { ButtonSpec },
+	xCenter: number,
+	startY: number,
+	spacing: number,
+	size: UDim2
+)
+	for i, button in ipairs(buttons) do
+		local btn = newButton(
+			button.name .. "Button",
+			parent,
+			button.label,
+			UDim2.fromScale(xCenter, startY + (i - 1) * spacing),
+			size,
+			button.accent
+		)
+		btn.Activated:Connect(function()
+			router.open(button.name)
+		end)
+	end
 end
 
 -- Lobby HUD ----------------------------------------------------------------
@@ -155,8 +232,8 @@ function Lobby._build(self: Lobby)
 	local playerPill = Instance.new("Frame")
 	playerPill.Name = "PlayerCount"
 	playerPill.Parent = root
-	playerPill.Position = UDim2.fromScale(0.04, 0.06)
-	playerPill.Size = UDim2.fromScale(0.2, 0.07)
+	playerPill.Position = UDim2.fromScale(0.04, 0.055)
+	playerPill.Size = UDim2.fromScale(0.14, 0.06)
 	playerPill.AnchorPoint = Vector2.new(0, 0)
 	playerPill.BackgroundColor3 = p.base
 	playerPill.BorderSizePixel = 0
@@ -174,41 +251,75 @@ function Lobby._build(self: Lobby)
 		Vector2.new(0.5, 0.5)
 	)
 
-	-- Coin counter placeholder (top-right)
-	local coinPill = Instance.new("Frame")
-	coinPill.Name = "Coins"
-	coinPill.Parent = root
-	coinPill.Position = UDim2.fromScale(0.96, 0.06)
-	coinPill.Size = UDim2.fromScale(0.2, 0.07)
-	coinPill.AnchorPoint = Vector2.new(1, 0)
-	coinPill.BackgroundColor3 = p.base
-	coinPill.BorderSizePixel = 0
-	newUICorner(tokens.radii.full).Parent = coinPill
-	newStroke(p.accent, 1, 0.55).Parent = coinPill
+	-- LEFT nav column
+	buildColumn(root, LEFT_BUTTONS, 0.1, 0.18, 0.15, UDim2.fromScale(0.13, 0.13))
+
+	-- RIGHT nav column
+	buildColumn(root, RIGHT_BUTTONS, 0.9, 0.2, 0.18, UDim2.fromScale(0.13, 0.13))
+
+	-- Bottom bar: coin (left) + level progress (center) + perk chip (right)
+	local coinIcon = Instance.new("Frame")
+	coinIcon.Name = "CoinIcon"
+	coinIcon.Parent = root
+	coinIcon.Position = UDim2.fromScale(0.235, 0.86)
+	coinIcon.Size = UDim2.fromScale(0.034, 0.034)
+	coinIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	coinIcon.BackgroundColor3 = tokens.palette.canary
+	coinIcon.BorderSizePixel = 0
+	newUICorner(tokens.radii.full).Parent = coinIcon
+
+	self._coinCountLabel = newLabel(
+		"CoinCount",
+		root,
+		"0",
+		UDim2.fromScale(0.29, 0.86),
+		UDim2.fromScale(0.08, 0.034),
+		tokens.textSizes.caption,
+		tokens.palette.text,
+		Vector2.new(0, 0.5)
+	)
+
+	local levelTrack = Instance.new("Frame")
+	levelTrack.Name = "LevelTrack"
+	levelTrack.Parent = root
+	levelTrack.Position = UDim2.fromScale(0.5, 0.91)
+	levelTrack.Size = UDim2.fromScale(0.52, 0.04)
+	levelTrack.AnchorPoint = Vector2.new(0.5, 0.5)
+	levelTrack.BackgroundColor3 = p.base
+	levelTrack.BorderSizePixel = 0
+	newUICorner(tokens.radii.lg).Parent = levelTrack
+	newStroke(p.accent, 1, 0.6).Parent = levelTrack
+
+	self._levelFill = Instance.new("Frame")
+	self._levelFill.Name = "LevelFill"
+	self._levelFill.Parent = levelTrack
+	self._levelFill.Size = UDim2.fromScale(0, 1)
+	self._levelFill.Position = UDim2.fromScale(0, 0.5)
+	self._levelFill.AnchorPoint = Vector2.new(0, 0.5)
+	self._levelFill.BackgroundColor3 = p.accent
+	self._levelFill.BorderSizePixel = 0
+	newUICorner(tokens.radii.lg).Parent = self._levelFill
+
+	local perkChip = Instance.new("Frame")
+	perkChip.Name = "PerkChip"
+	perkChip.Parent = root
+	perkChip.Position = UDim2.fromScale(0.765, 0.86)
+	perkChip.Size = UDim2.fromScale(0.22, 0.036)
+	perkChip.AnchorPoint = Vector2.new(0.5, 0.5)
+	perkChip.BackgroundColor3 = tokens.palette.pink
+	perkChip.BorderSizePixel = 0
+	newUICorner(tokens.radii.md).Parent = perkChip
 
 	newLabel(
 		"Label",
-		coinPill,
-		"0",
+		perkChip,
+		"Bloody Aura: 5x Coins",
 		UDim2.fromScale(0.5, 0.5),
-		UDim2.fromScale(0.9, 0.8),
-		tokens.textSizes.pill,
-		p.accent,
+		UDim2.fromScale(0.92, 0.85),
+		tokens.textSizes.caption,
+		tokens.palette.navy,
 		Vector2.new(0.5, 0.5)
 	)
-
-	-- Bottom thumb-zone (reserved, empty — future buttons)
-	local thumbZone = Instance.new("Frame")
-	thumbZone.Name = "ThumbZone"
-	thumbZone.Parent = root
-	thumbZone.Position = UDim2.fromScale(0.5, 0.93)
-	thumbZone.Size = UDim2.fromScale(0.9, 0.12)
-	thumbZone.AnchorPoint = Vector2.new(0.5, 0.5)
-	thumbZone.BackgroundColor3 = p.base
-	thumbZone.BorderSizePixel = 0
-	thumbZone.BackgroundTransparency = 0.55
-	newUICorner(tokens.radii.lg).Parent = thumbZone
-	newStroke(p.accent, 1, 0.65).Parent = thumbZone
 end
 
 function Lobby._connect(self: Lobby)
@@ -231,8 +342,7 @@ function Lobby._connect(self: Lobby)
 end
 
 function Lobby._onPayload(self: Lobby, payload: LobbyPayload)
-	local playerCount = #payload.players
-	self._playerCountLabel.Text = playerCount .. " / " .. MAX_PLAYERS
+	self._playerCountLabel.Text = #payload.players .. " / " .. MAX_PLAYERS
 end
 
 local function computeScale(screenHeight: number): number
