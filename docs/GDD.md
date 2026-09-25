@@ -29,7 +29,7 @@ DAU × blended ARPU (cash ≈ DAU × ARPU × 0.7 × 30 × $0.0035):
 | 20,000 | 50 R$ | $73,500 |
 | 20,000 | 200 R$ | $294,000 |
 
-Party-game levers: payer conversion 2–5% (design F2P progression + paid cosmetics together) · Premium playtime payouts ≈ 10–15% of baseline · D1 <35% / D7 <10% = churn warning (PRD staged gates keep D1 20/30 min/strong + D7 ≥10; 35% is the genre stretch goal). High rows require deep shop + high conversion — cosmetics-led strategy (locked) targets the middle rows first.
+Party-game levers (specialist rounds 1–3 reconciled 2026-09-25): payer conversion 2–5% at scale (volume-dependent for cosmetics-only) · **Creator Rewards** (replaces legacy Premium playtime): flat reward when a qualifying active spender ($9.99+ spend / 60d) stays 10+ min as one of their first three daily stops → target sessions **10–12 min** via bridge loops (lobby vote, quick rematch; PRD ≥8 min stays the floor) · retention reality: platform median D1 10.3% / D7 1.6%, "good" floor D1 20% → staged gates D1 20/30 confirmed; D1 35% = flawless-FTUE stretch goal · cosmetics build order for ages 9–13: **trails/auras > emotes/soundboards > outfits** (players keep their own avatar) · DevEx: 30k Earned Robux minimum, age 13+, no Premium required, under-18 cashouts need parent/guardian legal name + tax docs. High DAU rows require deep shop + high conversion — cosmetics-led strategy (locked) targets the middle rows first.
 Backlog (gated — kept in clear sight per Operator): player voting for new minigame ideas — post-v1, same cohort-proof gate as the battle pass. Squads/rank depth/trading stay out until the first cohort returns (analyst's strategic warning).
 
 ## Workflow (locked)
