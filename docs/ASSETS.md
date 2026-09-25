@@ -37,14 +37,13 @@ Never hardcode asset IDs in code — maps reference entries from here via their 
 | 14075114183 | Moving platform on a ball | Phase B interactive (King of the Hill?) | check scripts |
 | 7856302443 | Swinging hammer | Phase B interactive (Obstacle Sprint) | check scripts |
 | 9521417156 | The Fall map | Floor Fall arena reference/kit | **contains scripts → strip** |
-| 6121196773 | Conveyor belt **and/or** detailed bench | Floor Fall/Gold Rush prop | **⚠ duplicate ID — both entries listed this ID; awaiting corrected ID**; contains scripts → strip |
+| 741384218 | Detailed bench | lobby decor | check scripts on ingest |
+| 6121196773 | Conveyor belt | obstacle prop (Phase B) | contains scripts → strip |
 | 16206527053 | Rectangle planter 1 | lobby decor | |
 | 5463147966 | Round vase planter 2 | lobby decor | |
 | 129972365670146 | Box vase planter 3 | lobby decor | |
 | 5036801877 | Medieval lamp 1 | lobby decor (retheme via material/color) | |
 | 12462175904 | Lamp post | lobby decor | |
-| 6121196773 | (see duplicate flag above) | | |
-
 ### VFX / cosmetics (shop shell)
 
 | Asset ID | Name | Intended use | Flags |
@@ -63,6 +62,6 @@ Never hardcode asset IDs in code — maps reference entries from here via their 
 
 ## Open flags
 
-- **Duplicate ID 6121196773** (conveyor belt + detailed bench) — one is wrong; re-send the correct ID.
+- ~~Duplicate ID `6121196773`~~ **resolved 2026-09-25**: bench = `741384218`, conveyor = `6121196773`.
 - Trail/aura packs contain gameplay scripts → Client agent re-implements effects cleanly in Phase B;
   pack scripts are stripped, only visuals/meshes referenced.
