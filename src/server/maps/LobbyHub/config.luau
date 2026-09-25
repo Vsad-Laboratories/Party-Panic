@@ -1,7 +1,8 @@
--- Lobby Hub map config: pure data for Astro-Arcade Punk theme with Operator's layout.
--- Central disc (grass green) + perimeter wall (slate-blue) + top rim (green) + zones.
+-- Lobby Hub map config: Astro-Arcade Punk theme following LobbyMap Reference.jpg.
+-- Layout: floor top y=1; wall ring r[18,20]; north = +Z (status screen), south = -Z (obby).
+-- All zone boxes verified pairwise-disjoint, max corner r<=18, on-floor, <=40 studs from spawn.
 local LobbyHubConfig = {
-	-- Base floor (central disc) - grass green block
+	-- Grass floor (square block under the circular wall ring)
 	centralDisc = {
 		position = Vector3.new(0, 0, 0),
 		size = Vector3.new(40, 2, 40),
@@ -15,9 +16,9 @@ local LobbyHubConfig = {
 		material = Enum.Material.SmoothPlastic,
 		color = Color3.fromRGB(95, 227, 211), -- accent soft teal/cyan
 	},
-	-- Lobby spawn CFrame (position on central disc top)
-	lobbySpawn = CFrame.new(0, 1.5, 0), -- half thickness above disc center (disc top at y=1) + half spawn height
-	-- Walkable spawn points (on central disc top, inset from edge)
+	-- Lobby spawn CFrame (on floor top; identity rotation — facing is a Pass B observable)
+	lobbySpawn = CFrame.new(0, 1.5, 0),
+	-- Walkable spawn points (4x4 character footprint checked against every zone)
 	spawnPoints = {
 		Vector3.new(0, 1.5, 0),
 		Vector3.new(8, 1.5, 0),
@@ -25,167 +26,168 @@ local LobbyHubConfig = {
 		Vector3.new(0, 1.5, 8),
 		Vector3.new(0, 1.5, -8),
 	},
-	-- Perimeter wall (slate-blue) - approximated by 16 parts
+	-- Slate-blue perimeter wall, 16 segments; height 7 so the status screen mounts on it
 	perimeterWall = {
 		count = 16,
-		innerRadius = 18, -- radius of the central disc (inner edge of wall)
-		thickness = 2, -- wall thickness
-		height = 3, -- wall height
+		innerRadius = 18,
+		thickness = 2,
+		height = 7,
 		material = Enum.Material.SmoothPlastic,
 		color = Color3.fromRGB(46, 58, 89), -- slate-blue
 	},
-	-- Top rim (green) - approximated by 16 parts on top of the wall
+	-- Green top rim on the wall (init places it at 1 + wall.height + rim height/2)
 	topRim = {
 		count = 16,
-		innerRadius = 18, -- same as wall inner radius
-		thickness = 2, -- same thickness as wall
-		height = 0.5, -- rim height
+		innerRadius = 18,
+		thickness = 2,
+		height = 0.5,
 		material = Enum.Material.SmoothPlastic,
 		color = Color3.fromRGB(106, 190, 75), -- grass green (same as floor)
 	},
-	-- Zones
-	-- Storefront Avenue (left flank): 3 booths at left 45° (north-west) - actually angles -60, -45, -30
+	-- Storefront Avenue: 3 stalls stepping along the west wall (upper-left sector of the image)
 	storefrontAvenue = {
 		{
-			-- Booth 1: angle -60 deg
-			position = Vector3.new(-12.124, 1.0, 7.000), -- radius 14, angle -60 deg: x = -14*sin(60)= -12.124, z=14*cos(60)=7.000
-			size = Vector3.new(8, 6, 8),
+			position = Vector3.new(-13.5, 4.0, 4.5), -- size (5,6,4): y = 1 + 6/2 = 4 (seated on floor)
+			size = Vector3.new(5, 6, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(95, 227, 211), -- teal (interactive)
+			color = Color3.fromRGB(95, 227, 211), -- teal
 			name = "StorefrontBooth1",
 		},
 		{
-			-- Booth 2: angle -45 deg
-			position = Vector3.new(-9.899, 1.0, 9.899), -- radius 14, angle -45 deg: x = -14*sin(45)= -9.899, z=14*cos(45)=9.899
-			size = Vector3.new(8, 6, 8),
+			position = Vector3.new(-11.0, 4.0, 9.0),
+			size = Vector3.new(5, 6, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
+			color = Color3.fromRGB(255, 225, 77), -- canary
 			name = "StorefrontBooth2",
 		},
 		{
-			-- Booth 3: angle -30 deg
-			position = Vector3.new(-7.000, 1.0, 12.124), -- radius 14, angle -30 deg: x = -14*sin(30)= -7.000, z=14*cos(30)=12.124
-			size = Vector3.new(8, 6, 8),
+			position = Vector3.new(-5.5, 4.0, 12.0),
+			size = Vector3.new(5, 6, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
+			color = Color3.fromRGB(255, 225, 77), -- canary
 			name = "StorefrontBooth3",
 		},
 	},
-	-- Party Pass Grotto (right flank): elevated rocky alcove + trophy pedestal + gate sign at right 45° (north-east) -- actually angle +30 deg
+	-- Party Pass Grotto: raised stone terrace on the east wall with gate + neon sign on the wall
 	partyPassGrotto = {
 		alcove = {
-			-- Base at angle 30 deg from north
-			position = Vector3.new(7.000, 6.0, 12.124), -- radius 14, angle 30 deg: x = 14*sin(30)=7.000, z=14*cos(30)=12.124
-			size = Vector3.new(12, 10, 12),
+			position = Vector3.new(11.5, 3.0, 6.0), -- terrace: y = 1 + 4/2 = 3, top at y=5
+			size = Vector3.new(8, 4, 6),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(35, 43, 69), -- deep cosmic navy
-			name = "PartyPassAlcove",
+			color = Color3.fromRGB(163, 168, 178), -- light stone (reference image terrace)
+			name = "PartyPassTerrace",
 		},
 		pedestal = {
-			-- On top of alcove
-			position = Vector3.new(7.000, 12.0, 12.124), -- alcove height 10, so pedestal base at y=6.0+5.0=11.0, pedestal center at y=11.0+1.0=12.0
-			size = Vector3.new(6, 2, 6),
+			position = Vector3.new(11.5, 6.0, 6.0), -- sits on terrace top (y=5)
+			size = Vector3.new(3, 2, 3),
 			material = Enum.Material.Metal,
-			color = Color3.fromRGB(95, 227, 211), -- accent soft teal/cyan
+			color = Color3.fromRGB(255, 225, 77), -- gold (crown stand)
 			name = "TrophyPedestal",
 		},
-		gateSign = {
-			-- On the front face of the alcove (negative Z side), slightly outside
-			position = Vector3.new(7.000, 6.0, 5.900), -- x same as alcove center, y same as alcove center, z just outside alcove min Z (alcove min Z = 12.124 - 6 = 6.124, we place at 5.9)
-			size = Vector3.new(4, 2, 0.2),
+		gate = {
+			position = Vector3.new(16.35, 3.0, 6.0), -- chord-flat against curved wall, corners r<=18
+			size = Vector3.new(0.5, 4, 1.5),
 			material = Enum.Material.Metal,
-			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
+			color = Color3.fromRGB(60, 65, 75), -- dark iron
+			name = "PartyPassGate",
+		},
+		gateSign = {
+			position = Vector3.new(17.6, 6.0, 2.0), -- neon sign on the wall next to the gate
+			size = Vector3.new(0.2, 1.5, 2.5),
+			material = Enum.Material.Metal,
+			color = Color3.fromRGB(255, 225, 77), -- canary neon
 			name = "PartyPassGateSign",
 		},
 	},
-	-- Map Voting circle center: 3 glowing floor pads + STATUS screen above (dead ahead, north)
+	-- Map Voting Circle: 3 ring pads ON the spawn disc (north-pointing triangle, image center)
 	mapVotingCircle = {
 		pads = {
 			{
-				-- Pad 1: west of north (angle -60 deg)
-				position = Vector3.new(-8.660, 1.5, 5.000), -- radius 10, angle -60 deg
-				size = Vector3.new(4, 0.2, 4),
+				position = Vector3.new(0, 1.1, 4.3), -- north pad, r=4.3 from center; y = 1 + 0.1
+				size = Vector3.new(3, 0.2, 3),
 				material = Enum.Material.Neon,
-				color = Color3.fromRGB(95, 227, 211), -- teal (interactive)
+				color = Color3.fromRGB(95, 227, 211), -- teal
 				name = "VotePad1",
 			},
 			{
-				-- Pad 2: due north (angle 0 deg)
-				position = Vector3.new(0.000, 1.5, 10.000),
-				size = Vector3.new(4, 0.2, 4),
+				position = Vector3.new(-3.724, 1.1, -2.15), -- southwest pad, r=4.3
+				size = Vector3.new(3, 0.2, 3),
 				material = Enum.Material.Neon,
-				color = Color3.new(1, 1, 1), -- white (interactive)
+				color = Color3.new(1, 1, 1), -- white
 				name = "VotePad2",
 			},
 			{
-				-- Pad 3: east of north (angle +60 deg)
-				position = Vector3.new(8.660, 1.5, 5.000), -- radius 10, angle +60 deg
-				size = Vector3.new(4, 0.2, 4),
+				position = Vector3.new(3.724, 1.1, -2.15), -- southeast pad, r=4.3
+				size = Vector3.new(3, 0.2, 3),
 				material = Enum.Material.Neon,
-				color = Color3.fromRGB(255, 225, 77), -- yellow (interactive)
+				color = Color3.fromRGB(255, 225, 77), -- yellow
 				name = "VotePad3",
 			},
 		},
 		statusScreen = {
-			position = Vector3.new(0.000, 5.0, 10.000), -- above the voting circle
-			size = Vector3.new(8, 4, 0.2),
+			position = Vector3.new(0, 5.5, 17.38), -- mounted on the north wall, chord-flat (corners r<=18)
+			size = Vector3.new(8, 5, 0.3),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(35, 43, 69), -- deep cosmic navy
 			name = "StatusScreen",
 		},
 	},
-	-- Winner Podium center: tiered podium (rear 180° = south)
+	-- Winner Podium: small 3-tier stack north-east, flanking the vote circle's back (not in image)
 	winnerPodium = {
 		base = {
-			position = Vector3.new(0.000, 2.0, -13.000), -- due south, radius 13
-			size = Vector3.new(8, 2, 8),
+			position = Vector3.new(7.0, 2.0, 13.0),
+			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(106, 190, 75), -- grass green (same as floor)
+			color = Color3.fromRGB(106, 190, 75), -- grass green
 			name = "PodiumBase",
 		},
 		mid = {
-			position = Vector3.new(0.000, 4.0, -13.000), -- on top of base
-			size = Vector3.new(6, 2, 6),
+			position = Vector3.new(7.0, 4.0, 13.0),
+			size = Vector3.new(3, 2, 3),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(106, 190, 75),
 			name = "PodiumMid",
 		},
 		top = {
-			position = Vector3.new(0.000, 6.0, -13.000), -- on top of mid
-			size = Vector3.new(4, 2, 4),
+			position = Vector3.new(7.0, 6.0, 13.0),
+			size = Vector3.new(2, 2, 2),
 			material = Enum.Material.SmoothPlastic,
 			color = Color3.fromRGB(106, 190, 75),
 			name = "PodiumTop",
 		},
 	},
-	-- AFK & Coin Obby Arena front strip: decorative parkour strip (flanking the Winner Podium at the player's feet)
+	-- AFK & Coin Obby Arena: 4 colorful tiles across the south (front/at-feet sector of the image)
 	afkCoinObbyArena = {
-		-- We'll make a strip from west to east at the south, just in front of the Winner Podium (so north of the Winner Podium? but still south of spawn)
-		-- We'll put it at z = -6 (so 8 studs north of the Winner Podium which is at z=-13)
-		-- and from x = -10 to x = 10 in steps? We'll make three parts for simplicity.
 		{
-			position = Vector3.new(-10.000, 2.0, -6.000),
+			position = Vector3.new(-11.0, 2.0, -6.0), -- y = 1 + 2/2 = 2
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(255, 225, 77), -- canary yellow (interactive)
+			color = Color3.fromRGB(255, 63, 164), -- pink (DESIGN: pink/yellow/cyan/purple)
 			name = "ObbyStripWest",
 		},
 		{
-			position = Vector3.new(0.000, 2.0, -6.000),
+			position = Vector3.new(-5.0, 2.0, -6.0),
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(255, 225, 77),
-			name = "ObbyStripCenter",
+			color = Color3.fromRGB(255, 225, 77), -- yellow
+			name = "ObbyStripMidWest",
 		},
 		{
-			position = Vector3.new(10.000, 2.0, -6.000),
+			position = Vector3.new(5.0, 2.0, -6.0),
 			size = Vector3.new(4, 2, 4),
 			material = Enum.Material.SmoothPlastic,
-			color = Color3.fromRGB(255, 225, 77),
+			color = Color3.fromRGB(95, 227, 211), -- cyan
+			name = "ObbyStripMidEast",
+		},
+		{
+			position = Vector3.new(11.0, 2.0, -6.0),
+			size = Vector3.new(4, 2, 4),
+			material = Enum.Material.SmoothPlastic,
+			color = Color3.fromRGB(155, 89, 182), -- purple (DESIGN word; no RGB bound)
 			name = "ObbyStripEast",
 		},
 	},
-	-- Existing landmark (re-skinned)
+	-- Existing landmark re-skinned: outside the wall ring by design (visible above the rim)
 	landmark = {
 		position = Vector3.new(0, 5, 40),
 		size = Vector3.new(5, 10, 5),
@@ -193,16 +195,15 @@ local LobbyHubConfig = {
 		color = Color3.fromRGB(255, 63, 164), -- neon pink accent
 		name = "Landmark",
 	},
-	-- Decorative assets from ASSETS.md
+	-- Decorative assets from ASSETS.md; footprints assumed <=4x4 (Pass B visual check)
 	decorAssets = {
-		-- Example: planter, lamp, etc.
 		planter1 = {
 			id = 16206527053, -- Rectangle planter 1
-			position = Vector3.new(-10, 2, 15),
+			position = Vector3.new(-15.5, 2, 0),
 		},
 		lamp1 = {
 			id = 5036801877, -- Medieval lamp 1
-			position = Vector3.new(10, 2, -15),
+			position = Vector3.new(15, 2, -6),
 		},
 	},
 }

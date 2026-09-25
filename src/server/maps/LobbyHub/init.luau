@@ -130,6 +130,7 @@ function LobbyHub.init()
 	-- Party Pass Grotto
 	createPart(config.partyPassGrotto.alcove)
 	createPart(config.partyPassGrotto.pedestal)
+	createPart(config.partyPassGrotto.gate)
 	createPart(config.partyPassGrotto.gateSign)
 
 	-- Map Voting Circle
@@ -141,7 +142,8 @@ function LobbyHub.init()
 	local statusScreenPart = createPart(config.mapVotingCircle.statusScreen)
 	-- Add SurfaceGui for text display
 	local statusGui = Instance.new("SurfaceGui")
-	statusGui.Face = Enum.NormalId.Top
+	-- Wall-mounted screen: the visible face is -Z (toward spawn), not Top
+	statusGui.Face = Enum.NormalId.Front
 	statusGui.Adornee = statusScreenPart
 	statusGui.Parent = statusScreenPart
 	local textLabel = Instance.new("TextLabel")
