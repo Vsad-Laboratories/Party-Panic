@@ -1,14 +1,15 @@
 -- PlaytimeService: per-player playtime tracking with DataStore persistence.
--- Skills applied: roblox-datastores (pcall wraps, retry/backoff, BindToClose flush,
---   UpdateAsync atomic read-merge-save), roblox-security (server-authoritative, no
---   client writes), roblox-luau-patterns (module scope, cleanup ownership,
---   distinct success/missing-data states), roblox-performance (60s tick, no
---   per-frame work beyond an accumulator), roblox-luau-core (module shape).
--- Accrues session playtime via a 60s tick; loaded base is read-only, session
--- delta is the only thing persisted (via UpdateAsync add).
+-- Skills applied: roblox-datastores (pcall wraps, exponential backoff retry,
+--   BindToClose flush), roblox-security (server-authoritative, no client writes),
+--   roblox-luau-patterns (module scope, cleanup ownership, distinct success/missing),
+--   roblox-performance (60s tick, no per-frame work beyond accumulator),
+--   roblox-luau-core (module shape).
+-- Accrues session playtime via a 60s tick; loaded base folds each saved delta to
+-- stay equal to the persisted total, session delta is the unsaved segment that
+-- is the only new amount passed to UpdateAsync.
 -- Saves on player leave, periodic 60s tick, and server shutdown (BindToClose).
--- Periodic saves retain delta on failure (retried on next tick). Leave-path
--- save failure retains delta in tables until next tick or shutdown flush.
+-- Periodic saves retain delta on failure (retried next tick). Leave-path save
+-- failure retains delta until next periodic save or shutdown flush.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -27,6 +28,7 @@ PlaytimeService._loadedBase = {}
 PlaytimeService._sessionDelta = {}
 PlaytimeService._sessionStart = {}
 PlaytimeService._saveInFlight = {}
+PlaytimeService._pendingLeave = {}
 PlaytimeService._tickAccumulator = 0
 PlaytimeService._heartbeatConn = nil
 PlaytimeService._saving = false
@@ -70,13 +72,11 @@ function PlaytimeService._loadPlayer(userId: number): (boolean, number?)
 	return true, nil
 end
 
--- Persists an INCREMENT to the stored value via UpdateAsync (atomic
--- read-merge-save). The increment is session delta only — the loaded base
--- is never passed here, preventing double-count. Per-user _saveInFlight flag
--- prevents concurrent UpdateAsync calls for the same key (yields during
--- UpdateAsync can let PlayerRemoving fire mid-save). Returns true on success;
--- on failure, _sessionDelta is retained for retry (no accrual loss for
--- periodic saves; leave path may lose un-retried delta).
+-- Persists an INCREMENT via UpdateAsync (atomic read-merge-save). The increment
+-- is session delta only — the loaded base is never passed here, preventing
+-- double-count. Per-user _saveInFlight flag prevents concurrent UpdateAsync
+-- calls for the same key (yields during UpdateAsync can let PlayerRemoving fire
+-- mid-save). Returns true on success; on failure, delta is retained for retry.
 function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 	PlaytimeService._initDataStore()
 	if PlaytimeService._dataStore == nil then
@@ -127,8 +127,8 @@ end
 
 -- On join: load persisted base. On load ERROR (not missing key), do NOT arm
 -- persistence — skip this session entirely (bounded loss of accrual, no data wipe).
--- _loadedBase holds the persisted total (read-only); _sessionDelta accumulates
--- this session's playtime (reset only after successful save).
+-- _loadedBase folds each saved delta (equals persisted total at rest); _sessionDelta
+-- accumulates this session's unsaved playtime (reset after successful periodic save).
 function PlaytimeService._onPlayerAdded(player: Player)
 	if PlaytimeService._sessionStart[player.UserId] ~= nil then
 		return
@@ -143,11 +143,16 @@ function PlaytimeService._onPlayerAdded(player: Player)
 	PlaytimeService._sessionStart[player.UserId] = tick()
 end
 
+-- Presence check (a): in _saveAll success handler, if player is gone, clear all
+-- session fields instead of resetting — prevents ghost entries.
+-- Chained leave (b): if a save is in-flight, set _pendingLeave and return; the
+-- in-flight save completion will consume _pendingLeave with a final leave-save.
 function PlaytimeService._onPlayerRemoving(player: Player)
 	if PlaytimeService._sessionStart[player.UserId] == nil then
 		return
 	end
 	if PlaytimeService._saveInFlight[player.UserId] then
+		PlaytimeService._pendingLeave[player.UserId] = true
 		return
 	end
 	local sessionSeconds = PlaytimeService._getSessionSeconds(player)
@@ -158,6 +163,7 @@ function PlaytimeService._onPlayerRemoving(player: Player)
 		PlaytimeService._sessionDelta[player.UserId] = nil
 		PlaytimeService._sessionStart[player.UserId] = nil
 	end
+	PlaytimeService._pendingLeave[player.UserId] = nil
 end
 
 function PlaytimeService._tick(dt: number)
@@ -179,9 +185,27 @@ function PlaytimeService._saveAll()
 			local session = PlaytimeService._getSessionSeconds({ UserId = userId })
 			local delta = (PlaytimeService._sessionDelta[userId] or 0) + session
 			local saved = PlaytimeService._savePlayer(userId, delta)
-			if saved and PlaytimeService._sessionStart[userId] ~= nil then
-				PlaytimeService._sessionDelta[userId] = 0
-				PlaytimeService._sessionStart[userId] = tick()
+			if saved then
+				if Players:GetPlayerByUserId(userId) == nil then
+					PlaytimeService._loadedBase[userId] = nil
+					PlaytimeService._sessionDelta[userId] = nil
+					PlaytimeService._sessionStart[userId] = nil
+				else
+					PlaytimeService._loadedBase[userId] = (PlaytimeService._loadedBase[userId] or 0) + delta
+					PlaytimeService._sessionDelta[userId] = 0
+					PlaytimeService._sessionStart[userId] = tick()
+				end
+			end
+			if PlaytimeService._pendingLeave[userId] then
+				PlaytimeService._pendingLeave[userId] = nil
+				local session2 = PlaytimeService._getSessionSeconds({ UserId = userId })
+				local finalDelta = (PlaytimeService._sessionDelta[userId] or 0) + session2
+				local leaveSaved = PlaytimeService._savePlayer(userId, finalDelta)
+				if leaveSaved then
+					PlaytimeService._loadedBase[userId] = nil
+					PlaytimeService._sessionDelta[userId] = nil
+					PlaytimeService._sessionStart[userId] = nil
+				end
 			end
 		end
 	end
@@ -191,7 +215,7 @@ end
 -- Read surface for the future TOP Playtime leaderboard (asset 5352156968).
 -- Operator-directive scope: total playtime + top-N readers required for the
 -- lobby leaderboard prop (see task directive). Not speculative.
--- Total = loadedBase + sessionDelta + live session seconds.
+-- Total = loadedBase (persisted total) + sessionDelta (unsaved segment) + live session.
 function PlaytimeService.getTotalPlaytime(player: Player): number
 	if PlaytimeService._sessionStart[player.UserId] == nil then
 		return 0
