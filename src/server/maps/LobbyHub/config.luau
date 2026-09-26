@@ -24,18 +24,18 @@ local LobbyHubConfig = {
 	lobbySpawn = CFrame.new(0, 3.5, 0),
 	-- Perimeter spawn points, y=1.5 (bottom flush floor top y=1); Placements reads this
 	spawnPoints = {
-		Vector3.new(57, 1.5, 0),
-		Vector3.new(49.36, 1.5, 19.75),
-		Vector3.new(28.5, 1.5, 34.21),
-		Vector3.new(0, 1.5, 39.5),
-		Vector3.new(-28.5, 1.5, 34.21),
-		Vector3.new(-49.36, 1.5, 19.75),
-		Vector3.new(-57, 1.5, 0),
-		Vector3.new(-49.36, 1.5, -19.75),
-		Vector3.new(-28.5, 1.5, -34.21),
-		Vector3.new(0, 1.5, -39.5),
-		Vector3.new(28.5, 1.5, -34.21),
-		Vector3.new(49.36, 1.5, -19.75),
+		Vector3.new(54.5, 1.5, 0),
+		Vector3.new(47.2, 1.5, 18.5),
+		Vector3.new(27.25, 1.5, 32.04),
+		Vector3.new(0, 1.5, 37),
+		Vector3.new(-27.25, 1.5, 32.04),
+		Vector3.new(-47.2, 1.5, 18.5),
+		Vector3.new(-54.5, 1.5, 0),
+		Vector3.new(-47.2, 1.5, -18.5),
+		Vector3.new(-27.25, 1.5, -32.04),
+		Vector3.new(0, 1.5, -37),
+		Vector3.new(27.25, 1.5, -32.04),
+		Vector3.new(47.2, 1.5, -18.5),
 	},
 	-- Slate-blue perimeter wall: 32 tangent-aligned segments, y 1..17
 	perimeterWall = {
@@ -96,11 +96,13 @@ local LobbyHubConfig = {
 		color = Color3.fromRGB(163, 168, 178), -- light stone (reference hub)
 		name = "CentralPlatform",
 	},
-	-- Perimeter spawn ring: init builds 12 SpawnLocations here, facing center
+	-- Perimeter spawn ring: init builds 12 SpawnLocations here, facing center.
+	-- a/b give pad edges (half-size 2) >=1.5 clear of the band's BUILT inner
+	-- boundary (chord boxes sag up to ~0.3 inside the smooth offset curve).
 	spawnRing = {
 		count = 12,
-		a = 57,
-		b = 39.5,
+		a = 54.5,
+		b = 37,
 		y = 1.5,
 	},
 }
