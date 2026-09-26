@@ -1,6 +1,6 @@
 # Party Panic — PRD
 
-Status: v1 draft (inputs locked 2026-09-23) · Owner: Operator · Linked: [Vision.md](../Vision.md), [GDD.md](GDD.md)
+Status: v1 draft (inputs locked 2026-09-23) · Owner: Operator · Linked: [Vision.md](../Vision.md), [GDD.md](GDD.md) · **Amended 2026-09-26 (§9)**
 
 ## 1. Product overview
 
@@ -101,3 +101,25 @@ Trading, pet/economy sim depth, custom party system, ads, console certification,
 | Solo cadence burnout | cadence commitment is the recommended honest line — protect it |
 | First 10 minutes repetitive or socially empty (analyst's #1 risk) | §2 funnel gates + elimination engagement (FR2), micro-awards (FR12), rematch (FR11) are v1 scope, not post-v1 |
 | Hunyuan free quota expires (reported launch promo) | bank assets while free; Meshy CC BY as stable fallback |
+
+## 9. Amendments (2026-09-26 — Operator-locked; design detail in DESIGN.md)
+
+**A1 — Round-start model: Rounds Field** *(supersedes §4 round-cycle line and FR2's lobby-map-vote start flow)*
+Per DESIGN "Round-start model": a dedicated **Rounds Field** world where every minigame is a
+physical **stall** (big banner name + small boundary) offering **variant slots** (e.g. Hot Potato:
+1v4 / 1v8 / 2v12). Player picks a variant → UI lists **live running games** → join the current
+instance or queue → **round starts when capacity fills**. **No timers, no automatic join** —
+UX doctrine. Lobby = social hub, free roam only. §2/§4 first-round gates are measured from the
+player's **first stall interaction**, not from join (no auto-join doctrine), everything else in
+§2/§4 stands.
+
+**A2 — Party Pass replaces Battle Pass** *(terminology + cadence; §3 "First updates" item 1)*
+Free-Fire-style monthly pass: daily free rewards + purchasable premium tier, rotates monthly.
+Rename everywhere (lobby zone = Party Pass Grotto, UI = Party Pass). The **D7 ship-gate is
+unchanged** (launch only after D7 ≥ Minimum on 2 consecutive weeks); only the name and monthly
+cadence changed. "Out of scope: battle pass at launch" remains true for Party Pass.
+
+**A3 — Game Votes** *(new live-ops item; extends §3 / FR10)*
+Post-update community poll: an update ships → ~5 days later a poll opens for the **next**
+update's minigame (UI = Game Vote UI in DESIGN §10). Data-only per FR10; adds a community
+selection step to the update cadence, does not change the weekly/monthly shipping commitment.
