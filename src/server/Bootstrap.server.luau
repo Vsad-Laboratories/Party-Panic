@@ -11,10 +11,9 @@ machine:start()
 local LobbyHub = require(game.ServerScriptService.Server.maps.LobbyHub)
 LobbyHub.init()
 
-local playtime = PlaytimeService
-playtime.start()
+PlaytimeService.start()
 
 -- Flush all player playtime on server shutdown (roblox-datastores: BindToClose)
 game:BindToClose(function()
-	playtime.shutdown()
+	PlaytimeService.shutdown()
 end)

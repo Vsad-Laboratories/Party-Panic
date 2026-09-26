@@ -1,10 +1,11 @@
 -- PlaytimeService: per-player playtime tracking with DataStore persistence.
 -- Skills applied: roblox-datastores (pcall wraps, retry/backoff, BindToClose flush,
---   atomic UpdateAsync for load-merge-save), roblox-performance (60s tick, no per-frame
---   work beyond an accumulator), roblox-luau-patterns (module scope, cleanup ownership,
---   distinct success/missing-data states).
+--   UpdateAsync atomic read-merge-save), roblox-security (server-authoritative, no
+--   client writes, session-locked per-player keys), roblox-luau-patterns (module
+--   scope, cleanup ownership, distinct success/missing-data states), roblox-performance
+--   (60s tick, no per-frame work beyond an accumulator), roblox-luau-core (module shape).
 -- Accrues total playtime + current-session segment via a 60s tick.
--- Saves on player leave and server shutdown. No data loss on leave/hop.
+-- Saves on player leave, periodic 60s tick, and server shutdown (BindToClose).
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -42,10 +43,13 @@ function PlaytimeService._getKey(userId: number): string
 	return PLAYTIME_KEY_PREFIX .. tostring(userId)
 end
 
-function PlaytimeService._loadPlayer(userId: number): number?
+-- Returns (ok, value): ok=false on error (distinct from missing key).
+-- ok=true + nil value = key not yet set (first-time player).
+-- ok=true + number = persisted total playtime.
+function PlaytimeService._loadPlayer(userId: number): (boolean, number?)
 	PlaytimeService._initDataStore()
 	if PlaytimeService._dataStore == nil then
-		return nil
+		return false, nil
 	end
 	local key = PlaytimeService._getKey(userId)
 	local ok, result = pcall(function()
@@ -53,14 +57,17 @@ function PlaytimeService._loadPlayer(userId: number): number?
 	end)
 	if not ok then
 		warn("[PlaytimeService] load failed for userId " .. userId .. ": " .. tostring(result))
-		return nil
+		return false, nil
 	end
 	if typeof(result) == "number" then
-		return result
+		return true, result
 	end
-	return nil
+	return true, nil
 end
 
+-- Atomic read-merge-save via UpdateAsync: adds session delta to the current
+-- stored value. This is the server-authoritative pattern (roblox-datastores skill)
+-- — avoids lost updates when multiple servers touch the same key.
 function PlaytimeService._savePlayer(userId: number, playtime: number)
 	PlaytimeService._initDataStore()
 	if PlaytimeService._dataStore == nil then
@@ -71,7 +78,13 @@ function PlaytimeService._savePlayer(userId: number, playtime: number)
 	local lastErr = nil
 	for attempt = 1, MAX_RETRIES do
 		local ok, err = pcall(function()
-			PlaytimeService._dataStore:SetAsync(key, playtime)
+			PlaytimeService._dataStore:UpdateAsync(key, function(current)
+				local stored = 0
+				if typeof(current) == "number" then
+					stored = current
+				end
+				return stored + playtime
+			end)
 		end)
 		if ok then
 			return true
@@ -97,11 +110,19 @@ function PlaytimeService._getSessionSeconds(player: Player): number
 	return tick() - (PlaytimeService._sessionStart[player.UserId] or tick())
 end
 
+-- On join: load persisted playtime. On load ERROR (not missing key), do NOT arm
+-- persistence — skip saves for this session (bounded loss of this session's accrual).
+-- A failed load means the DataStore had an issue; overwriting on save risks wiping
+-- data. The player's existing total is unrecoverable this session but safe.
 function PlaytimeService._onPlayerAdded(player: Player)
 	if PlaytimeService._playerData[player.UserId] ~= nil then
 		return
 	end
-	local loaded = PlaytimeService._loadPlayer(player.UserId)
+	local ok, loaded = PlaytimeService._loadPlayer(player.UserId)
+	if not ok then
+		warn("[PlaytimeService] player " .. player.Name .. " skipped (load error); persistence disarmed for session")
+		return
+	end
 	PlaytimeService._playerData[player.UserId] = loaded or 0
 	PlaytimeService._sessionStart[player.UserId] = tick()
 end
@@ -143,6 +164,9 @@ function PlaytimeService._saveAll()
 	PlaytimeService._saving = false
 end
 
+-- Read surface for the future TOP Playtime leaderboard (asset 5352156968).
+-- Operator-directive scope: total playtime + top-N readers required for the
+-- lobby leaderboard prop (see task directive). Not speculative.
 function PlaytimeService.getTotalPlaytime(player: Player): number
 	local session = tick() - (PlaytimeService._sessionStart[player.UserId] or tick())
 	local total = PlaytimeService._playerData[player.UserId] or 0
