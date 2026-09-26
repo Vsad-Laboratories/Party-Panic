@@ -62,6 +62,27 @@ Never hardcode asset IDs in code — maps reference entries from here via their 
 | 115356376743509 | Coin icon | HUD / shop coin display |
 | 8370512807 | Voting coin icon | vote UI |
 
+## Batch 2 (2026-09-26) — lobby rebuild + new systems
+
+### Lobby props (models)
+
+| Asset ID | Name | Intended use | Flags |
+|---|---|---|---|
+| 12549617200 | Tree | lobby nature scatter | check scripts on ingest |
+| 16933634812 | Rocks | lobby rock scatter | check scripts on ingest |
+| 10355509588 | Group of rocks | rock cluster | check scripts on ingest |
+| 13471036173 | Single rock | rock accent | check scripts on ingest |
+| 16263631766 | Stall pack (5 colours) | storefront stalls, placement per `assets/Reference/Lobby.jpg` | check scripts on ingest |
+| 110144096035671 | Mythical spawn plate | central platform spawn plate | check scripts on ingest |
+| 5352156968 | TOP Playtime Leaderboard | lobby leaderboard prop | **contains scripts → strip**; playtime data wiring deferred |
+
+### Systems (integration pending — not lobby-base scope)
+
+| Asset ID | Name | Intended use | Flags |
+|---|---|---|---|
+| 15261348321 | Particle Effect Pack | event particle effects (kills / revives / plays / rewards) | **contains scripts → strip**; emitters referenced only, logic re-built Client-side |
+| 92018365421220 | Nametags+ | nametags: Roblox Plus, verified badges, country flags, custom titles, HEX colors | **full third-party system → security review before any integration**; never run as-is |
+
 ## Open flags
 
 - ~~Duplicate ID `6121196773`~~ **resolved 2026-09-25**: bench = `741384218`, conveyor = `6121196773`.

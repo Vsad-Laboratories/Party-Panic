@@ -9,7 +9,22 @@ Cozy low-poly sci-fi: chunky geometry, soft neon, no lens flares. Palette: base 
 `fromRGB(46,58,89)` / cosmic navy `fromRGB(35,43,69)`, accent teal-cyan `fromRGB(95,227,211)`,
 highlights neon pink `fromRGB(255,63,164)` + canary `fromRGB(255,225,77)` = interactive zones only.
 
-## Lobby layout (LobbyHub Phase A — binding)
+## Lobby base v2 (Operator 2026-09-26 — binding, supersedes Phase A layout below)
+
+Ground truth = **`assets/Reference/Lobby.jpg`**. Rounded **oval** ground — never a rectangle:
+
+- **Shape:** oval, ~1.2–1.4× wider than deep. Starting size **24 × 18** — Operator units;
+  **scale pending confirm** (treat as meters ×3.5 studs → 84×63, vs direct studs).
+- **Playable central area** ≈ 14 × 10; **outer decorative ring** 2–3 wide; **perimeter wall** 4–6 tall.
+- **Spawn points around the perimeter, facing the center.**
+- **Central platform** ≈ 6–8 wide carrying the **mythical spawn plate** (`110144096035671`);
+  players spawn there — free roam, no auto-join (UX doctrine).
+- **Stalls:** pack `16263631766` (5 colours) placed per the reference image (Storefront side);
+  trees `12549617200` + rocks `16933634812` / `10355509588` / `13471036173` scattered on the ring.
+- **TOP Playtime Leaderboard** `5352156968`: prop now, third-party scripts stripped, playtime data later.
+- Lighting block unchanged (bright daylight per reference). Zones/systems re-attach after the base ships.
+
+## Lobby layout (LobbyHub Phase A — SUPERSEDED 2026-09-26 by "Lobby base v2"; reference only)
 
 Ground truth = Operator's **`LobbyMap Reference.jpg`** (repo root). Lobby follows the reference image;
 Astro navy palette governs minigame maps + UI.
@@ -103,3 +118,14 @@ Primitive shapes, emissive outlines, instantly readable silhouettes — no hyper
   premium tier, new pass every month. Lobby zone renamed (above); GDD + PRD to follow.
 - **Game Votes** — live-ops poll cadence: update ships → ~5 days later poll opens for the next
   update's minigame.
+
+## Particle effects (Operator 2026-09-26)
+
+- **Event-driven bursts — the opposite of shop auras:** auras glow constantly; particle effects
+  fire on a trigger and stop. Never looping, never idle glow.
+- **Trigger events:** kills, revives, plays (round joins), rewards (coins/levels/pass claims),
+  + other milestones as designed per screen.
+- Source: **Particle Effect Pack `15261348321`** (ASSETS.md Batch 2) — ingest per binding rules:
+  scripts stripped, emitters referenced only; effect logic re-built Client-side.
+- **Perf law:** pooled short-lived emitters, ≤ a few active per event, low-end 30 fps budget,
+  off-switchable in Settings.
