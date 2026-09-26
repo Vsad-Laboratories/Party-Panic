@@ -7,6 +7,8 @@
 -- Accrues session playtime via a 60s tick; loaded base is read-only, session
 -- delta is the only thing persisted (via UpdateAsync add).
 -- Saves on player leave, periodic 60s tick, and server shutdown (BindToClose).
+-- Periodic saves retain delta on failure (retried on next tick). Leave-path
+-- save failure retains delta in tables until next tick or shutdown flush.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -24,6 +26,7 @@ PlaytimeService._dataStore = nil
 PlaytimeService._loadedBase = {}
 PlaytimeService._sessionDelta = {}
 PlaytimeService._sessionStart = {}
+PlaytimeService._saveInFlight = {}
 PlaytimeService._tickAccumulator = 0
 PlaytimeService._heartbeatConn = nil
 PlaytimeService._saving = false
@@ -68,14 +71,21 @@ function PlaytimeService._loadPlayer(userId: number): (boolean, number?)
 end
 
 -- Persists an INCREMENT to the stored value via UpdateAsync (atomic
--- read-merge-save). The increment is session accrual only — the loaded base
--- is never passed here, preventing double-count. Returns true on save success.
--- On failure, the caller retains _sessionDelta (retry does not drop accrual).
+-- read-merge-save). The increment is session delta only — the loaded base
+-- is never passed here, preventing double-count. Per-user _saveInFlight flag
+-- prevents concurrent UpdateAsync calls for the same key (yields during
+-- UpdateAsync can let PlayerRemoving fire mid-save). Returns true on success;
+-- on failure, _sessionDelta is retained for retry (no accrual loss for
+-- periodic saves; leave path may lose un-retried delta).
 function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 	PlaytimeService._initDataStore()
 	if PlaytimeService._dataStore == nil then
 		return false
 	end
+	if PlaytimeService._saveInFlight[userId] then
+		return false
+	end
+	PlaytimeService._saveInFlight[userId] = true
 	local key = PlaytimeService._getKey(userId)
 	local backoff = INITIAL_BACKOFF
 	local lastErr = nil
@@ -90,6 +100,7 @@ function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 			end)
 		end)
 		if ok then
+			PlaytimeService._saveInFlight[userId] = nil
 			return true
 		end
 		lastErr = err
@@ -98,6 +109,7 @@ function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 			backoff = backoff * 2
 		end
 	end
+	PlaytimeService._saveInFlight[userId] = nil
 	warn(
 		"[PlaytimeService] save failed for userId "
 			.. userId
@@ -135,12 +147,17 @@ function PlaytimeService._onPlayerRemoving(player: Player)
 	if PlaytimeService._sessionStart[player.UserId] == nil then
 		return
 	end
+	if PlaytimeService._saveInFlight[player.UserId] then
+		return
+	end
 	local sessionSeconds = PlaytimeService._getSessionSeconds(player)
-	local delta = PlaytimeService._sessionDelta[player.UserId] + sessionSeconds
-	PlaytimeService._loadedBase[player.UserId] = nil
-	PlaytimeService._sessionDelta[player.UserId] = nil
-	PlaytimeService._sessionStart[player.UserId] = nil
-	PlaytimeService._savePlayer(player.UserId, delta)
+	local delta = (PlaytimeService._sessionDelta[player.UserId] or 0) + sessionSeconds
+	local saved = PlaytimeService._savePlayer(player.UserId, delta)
+	if saved then
+		PlaytimeService._loadedBase[player.UserId] = nil
+		PlaytimeService._sessionDelta[player.UserId] = nil
+		PlaytimeService._sessionStart[player.UserId] = nil
+	end
 end
 
 function PlaytimeService._tick(dt: number)
@@ -158,12 +175,14 @@ function PlaytimeService._saveAll()
 	end
 	PlaytimeService._saving = true
 	for userId in pairs(PlaytimeService._sessionStart) do
-		local session = PlaytimeService._getSessionSeconds({ UserId = userId })
-		local delta = PlaytimeService._sessionDelta[userId] + session
-		local saved = PlaytimeService._savePlayer(userId, delta)
-		if saved then
-			PlaytimeService._sessionDelta[userId] = 0
-			PlaytimeService._sessionStart[userId] = tick()
+		if not PlaytimeService._saveInFlight[userId] then
+			local session = PlaytimeService._getSessionSeconds({ UserId = userId })
+			local delta = (PlaytimeService._sessionDelta[userId] or 0) + session
+			local saved = PlaytimeService._savePlayer(userId, delta)
+			if saved and PlaytimeService._sessionStart[userId] ~= nil then
+				PlaytimeService._sessionDelta[userId] = 0
+				PlaytimeService._sessionStart[userId] = tick()
+			end
 		end
 	end
 	PlaytimeService._saving = false
