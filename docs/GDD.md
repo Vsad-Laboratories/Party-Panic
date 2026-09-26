@@ -59,6 +59,33 @@ Backlog (gated — kept in clear sight per Operator): player-created minigame vo
 
 Launch five stay as-is; differentiation comes from presentation, modifiers, social chaos, progression — not new genres. Candidate pool (each = one file, zero core edits): Hot Potato, Color Panic, Push-Off, Package Panic, Bomb Relay, Prop Hide-and-Seek, Rising Water, Team Tangle (temporary teams; crown bonus stays individual).
 
+### Pro consultation — recommended minigames (2026-09-26, advisory, deferred)
+
+**Status: NOT NOW.** Operator directive: foundations first; later we build them **1 by 1**.
+⚠ **Roster conflict to ratify after foundations:** PRD/GDD launch five (Floor Fall, Obstacle
+Sprint, Tag Blast, King of the Hill, Gold Rush) vs pro's five (below) overlap only on Obstacle
+Sprint — replacement vs addition is an open Operator call.
+
+| # | Minigame | Core loop | Demand | Difficulty |
+|---|---|---|---|---|
+| 1 | Color Rush | stand on announced color before tiles vanish | very high | very easy |
+| 2 | Last Platform | platforms vanish mid-jump; last survivor wins | very high | easy |
+| 3 | Bomb Pass | pass timed bomb by touch; holder at zero = eliminated | high | easy |
+| 4 | Obstacle Sprint | race short course (30–60 s), checkpoints + times | very high | easy–medium |
+| 5 | Coin Scramble | most coins collected before timer ends | high | easy |
+| 6 | Freeze Tag | taggers freeze others; touch to unfreeze | high | easy–medium |
+| 7 | Memory Tiles | memorize safe tiles, cross arena | high | easy |
+| 8 | Push Arena | knock opponents off small platform | high | medium |
+| 9 | Delivery Dash | carry objects to matching destinations | medium–high | easy |
+| 10 | Guess the Safe Door | wrong door = eliminated | medium–high | very easy |
+
+MVP five (pro): Color Rush, Last Platform, Bomb Pass, Obstacle Sprint, Coin Scramble.
+Round structure: intermission → arena → one-sentence objective → 60–90 s round → winners →
+back to lobby fast; match ≈ 8–12 min. Competitive edge = polish, not count: faster matchmaking,
+mobile controls, clear instructions, funnier transitions, social features, frequent updates,
+cosmetics-led fairness (no pay-to-win). Per-game dev requirements + expansion ideas: ask
+Operator for the full consultation text (recorded in session, 2026-09-26).
+
 ## Roadmap
 
 | Weeks | Deliverable |
