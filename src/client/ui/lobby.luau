@@ -7,8 +7,9 @@
 -- Skills applied: roblox-gui (ScreenGui/Scale/ScaleType/ResetOnSpawn), roblox-ui-design
 -- (visual system, hierarchy, touch targets), roblox-luau-core (if-expr, 1-based),
 -- roblox-luau-patterns (module ownership/cleanup, task.*), roblox-animations (tweens).
--- UX law: docs/UX.md (BuilderSans FontFace, TextScaled+UITextSizeConstraint, 150ms
--- tooltips, no mock data, no opaque overlay). Operator playtest report = spec.
+-- UX law: docs/UX.md (BuilderSans FontFace, TextScaled+UITextSizeConstraint, 120ms
+-- tooltips per Operator spec, no mock data, no opaque overlay). Operator playtest
+-- report = spec.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -41,7 +42,8 @@ type LobbyPayload = {
 
 local MAX_PLAYERS = 12
 
--- Tooltip (GOAL b / docs/UX.md #24): 0.12s delay, 0.1s fade-in, instant hide on leave.
+-- Tooltip (GOAL b / Operator spec 0.12s, overrides docs/UX.md #23 150-200ms): 0.12s
+-- delay, 0.1s fade-in, instant hide on leave.
 local TOOLTIP_DELAY = 0.12
 local TOOLTIP_TWEEN = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
@@ -334,7 +336,7 @@ function Lobby._build(self: Lobby)
 	)
 
 	-- LEFT nav column — icon-only ImageButtons (icons.luau)
-	buildColumn(root, LEFT_BUTTONS, 0.11, 0.18, 0.17, 0.11, self)
+	buildColumn(root, LEFT_BUTTONS, 0.11, 0.18, 0.16, 0.11, self)
 	-- RIGHT nav column
 	buildColumn(root, RIGHT_BUTTONS, 0.89, 0.18, 0.18, 0.11, self)
 
@@ -524,12 +526,13 @@ end
 
 -- Tooltip lifecycle (GOAL b): show after a 0.12s delay; hide instantly on leave. PC
 -- hover only — MouseEnter/MouseLeave don't fire on touch. The tooltip sits beside the
--- button (never over it) so it cannot block clicks (docs/UX.md anti-pattern #2).
+-- button (never over it) so it cannot block clicks.
 function Lobby._scheduleTooltip(self: Lobby, text: string, xScale: number, yScale: number)
 	if self._tooltipTask then
 		task.cancel(self._tooltipTask)
 	end
 	self._tooltipTask = task.delay(TOOLTIP_DELAY, function()
+		self._tooltipTask = nil -- fired; never task.cancel a completed thread (review note)
 		self:_showTooltip(text, xScale, yScale)
 	end)
 end
