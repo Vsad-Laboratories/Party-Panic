@@ -51,7 +51,6 @@ type ButtonSpec = {
 	name: string,
 	icon: string,
 	label: string,
-	accent: Color3,
 }
 
 type Lobby = {
@@ -139,6 +138,9 @@ end
 -- press tint + click sound, and a scheduled tooltip. Wired through sounds.luau so no
 -- button can miss feedback (GOAL a/f, Finding 5). Icon-only per docs/UX.md #30/#4
 -- (the tooltip carries the friendly name, satisfying #30 without caption clutter).
+-- Uniform clean box: navy panel + transparency + UICorner, no per-button stroke
+-- (Operator: buttons were "plain uniform boxes" with coloured accents — now every
+-- button is the same rounded navy box with only the icon inside).
 local function newButton(
 	name: string,
 	parent: Instance,
@@ -147,7 +149,6 @@ local function newButton(
 	xScale: number,
 	yScale: number,
 	scale: number,
-	accent: Color3,
 	lobby: Lobby
 ): ImageButton
 	local button = Instance.new("ImageButton")
@@ -164,7 +165,6 @@ local function newButton(
 	button.ScaleType = Enum.ScaleType.Fit
 	button.ImageColor3 = tokens.palette.text
 	newUICorner(tokens.radii.lg).Parent = button
-	newStroke(accent, 1, 0.45).Parent = button
 
 	button.MouseEnter:Connect(function()
 		button.ImageColor3 = tokens.palette.canary
@@ -194,17 +194,17 @@ end
 -- Icons resolve via src/client/ui/icons.luau (placeholder IDs until Operator lands them).
 
 local LEFT_BUTTONS: { ButtonSpec } = {
-	{ name = "Inventory", icon = "Inventory", label = "Inventory", accent = tokens.palette.accent },
-	{ name = "Shop", icon = "Shop", label = "Shop", accent = tokens.palette.pink },
-	{ name = "Settings", icon = "Settings", label = "Settings", accent = tokens.palette.canary },
-	{ name = "PartyPass", icon = "PartyPass", label = "Party Pass", accent = tokens.palette.accent },
-	{ name = "Packs", icon = "Packs", label = "Packs", accent = tokens.palette.pink },
+	{ name = "Inventory", icon = "Inventory", label = "Inventory" },
+	{ name = "Shop", icon = "Shop", label = "Shop" },
+	{ name = "Settings", icon = "Settings", label = "Settings" },
+	{ name = "PartyPass", icon = "PartyPass", label = "Party Pass" },
+	{ name = "Packs", icon = "Packs", label = "Packs" },
 }
 
 local RIGHT_BUTTONS: { ButtonSpec } = {
-	{ name = "MiniGames", icon = "MiniGames", label = "Mini-Games", accent = tokens.palette.canary },
-	{ name = "Maps", icon = "WorldMap", label = "Maps", accent = tokens.palette.accent },
-	{ name = "Stats", icon = "Stats", label = "Stats", accent = tokens.palette.pink },
+	{ name = "MiniGames", icon = "MiniGames", label = "Mini-Games" },
+	{ name = "Maps", icon = "WorldMap", label = "Maps" },
+	{ name = "Stats", icon = "Stats", label = "Stats" },
 }
 
 local function buildColumn(
@@ -225,7 +225,6 @@ local function buildColumn(
 			xCenter,
 			startY + (i - 1) * spacing,
 			scale,
-			button.accent,
 			lobby
 		)
 		btn.Activated:Connect(function()
