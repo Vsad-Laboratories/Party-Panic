@@ -7,14 +7,20 @@
 
 local router = {}
 
--- No-op handler used until the real screen exists; keeps every button resolvable.
+-- No-op handler used until a real screen exists; keeps every button resolvable.
 local function noop(): () end
+
+-- Lazy-open screens so a not-yet-built module can't block lobby boot or create a
+-- require cycle (shop.luau does not require router, so opening it here is safe).
+local function shop(): ()
+	require(script.Parent.shop).open()
+end
 
 local routes: { [string]: () -> () } = {
 	-- TODO(lobby-screens): build the Inventory screen
 	Inventory = noop,
-	-- TODO(lobby-screens): build the Shop screen
-	Shop = noop,
+	-- Shop screen (see src/client/ui/shop.luau): catalog grid, locker, emotes tab.
+	Shop = shop,
 	-- TODO(lobby-screens): build the Settings screen
 	Settings = noop,
 	-- TODO(lobby-screens): build the Party Pass screen

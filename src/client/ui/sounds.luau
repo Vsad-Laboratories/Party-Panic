@@ -9,6 +9,7 @@
 -- the soft pop character and the registered asset IDs (docs/ASSETS.md) unchanged.
 
 local SoundService = game:GetService("SoundService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local HOVER_ASSET = "rbxassetid://127105730240202"
 local CLICK_ASSET = "rbxassetid://138567614125924"
@@ -37,6 +38,14 @@ local module = {
 	end,
 	playClick = function(): ()
 		play(click)
+	end,
+
+	-- Preload both pop sounds so they are ready at first paint (Operator: launch slow,
+	-- icons/sfx took 10+ seconds). Safe no-op if ContentProvider can't resolve yet.
+	preload = function(): ()
+		pcall(function()
+			ContentProvider:PreloadAsync({ hover, click })
+		end)
 	end,
 }
 

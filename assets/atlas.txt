@@ -1,0 +1,38 @@
+# assets/atlas.txt - source of truth for the HUD icon atlas (UI charter: src/client/ui)
+# Atlas image: 104056199975187 (410x328, 82x82 trimmed square slots, 5 columns).
+# All slots are trimmed of transparent padding and centered, so ScaleType Fit fills
+# each square hitbox with zero letterbox. Do not edit offsets here without mirroring
+# src/client/ui/icons.luau. assets/IDs.txt is the legacy per-icon table and is NOT
+# regenerated for the atlas (it is still the upload source of truth for PR #22).
+#
+# name | x | y   (in pixels, top-left corner of the 82x82 slot)
+atlasId=104056199975187
+slotW=82
+slotH=82
+cols=5
+rows=4
+Back=0,0
+Buy=82,0
+Claim=164,0
+Close=246,0
+Coin=328,0
+Confirm=0,82
+Inventory=82,82
+Lock=164,82
+MiniGames=246,82
+Packs=328,82
+PartyPass=0,164
+Perk=82,164
+Play=164,164
+Players=246,164
+Settings=328,164
+Shop=0,246
+Stats=82,246
+VoteMap=164,246
+WorldMap=246,246
+# pending (PNGs arrive via PR #22): Level, Sell, Equip, Unequip, Gift -> rbxassetid://0
+Level=pending
+Sell=pending
+Equip=pending
+Unequip=pending
+Gift=pending
