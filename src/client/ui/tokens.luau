@@ -29,8 +29,8 @@ type Radii = {
 }
 
 type Fonts = {
-	heading: Enum.Font,
-	body: Enum.Font,
+	heading: Font,
+	body: Font,
 	mono: Enum.Font,
 }
 
@@ -72,8 +72,8 @@ local tokens: {
 		full = 999,
 	},
 	fonts = {
-		heading = Enum.Font.GothamBold,
-		body = Enum.Font.Gotham,
+		heading = Font.fromName("BuilderSans", Enum.FontWeight.ExtraBold),
+		body = Font.fromName("BuilderSans", Enum.FontWeight.Regular),
 		mono = Enum.Font.Code,
 	},
 	textSizes = {
