@@ -51,7 +51,6 @@ type ButtonSpec = {
 	name: string,
 	icon: string,
 	label: string,
-	accent: Color3,
 }
 
 type Lobby = {
@@ -67,6 +66,7 @@ type Lobby = {
 	_tooltipTween: Tween?,
 	_tooltipTask: thread?,
 	_eventConn: RBXScriptConnection?,
+	_childAddedConn: RBXScriptConnection?,
 	_resizeConn: RBXScriptConnection?,
 	_build: (Lobby) -> (),
 	_connect: (Lobby) -> (),
@@ -139,6 +139,9 @@ end
 -- press tint + click sound, and a scheduled tooltip. Wired through sounds.luau so no
 -- button can miss feedback (GOAL a/f, Finding 5). Icon-only per docs/UX.md #30/#4
 -- (the tooltip carries the friendly name, satisfying #30 without caption clutter).
+-- Uniform clean box: navy panel + transparency + UICorner, no per-button stroke
+-- (Operator: buttons were "plain uniform boxes" with coloured accents — now every
+-- button is the same rounded navy box with only the icon inside).
 local function newButton(
 	name: string,
 	parent: Instance,
@@ -147,7 +150,6 @@ local function newButton(
 	xScale: number,
 	yScale: number,
 	scale: number,
-	accent: Color3,
 	lobby: Lobby
 ): ImageButton
 	local button = Instance.new("ImageButton")
@@ -164,7 +166,6 @@ local function newButton(
 	button.ScaleType = Enum.ScaleType.Fit
 	button.ImageColor3 = tokens.palette.text
 	newUICorner(tokens.radii.lg).Parent = button
-	newStroke(accent, 1, 0.45).Parent = button
 
 	button.MouseEnter:Connect(function()
 		button.ImageColor3 = tokens.palette.canary
@@ -194,17 +195,17 @@ end
 -- Icons resolve via src/client/ui/icons.luau (placeholder IDs until Operator lands them).
 
 local LEFT_BUTTONS: { ButtonSpec } = {
-	{ name = "Inventory", icon = "Inventory", label = "Inventory", accent = tokens.palette.accent },
-	{ name = "Shop", icon = "Shop", label = "Shop", accent = tokens.palette.pink },
-	{ name = "Settings", icon = "Settings", label = "Settings", accent = tokens.palette.canary },
-	{ name = "PartyPass", icon = "PartyPass", label = "Party Pass", accent = tokens.palette.accent },
-	{ name = "Packs", icon = "Packs", label = "Packs", accent = tokens.palette.pink },
+	{ name = "Inventory", icon = "Inventory", label = "Inventory" },
+	{ name = "Shop", icon = "Shop", label = "Shop" },
+	{ name = "Settings", icon = "Settings", label = "Settings" },
+	{ name = "PartyPass", icon = "PartyPass", label = "Party Pass" },
+	{ name = "Packs", icon = "Packs", label = "Packs" },
 }
 
 local RIGHT_BUTTONS: { ButtonSpec } = {
-	{ name = "MiniGames", icon = "MiniGames", label = "Mini-Games", accent = tokens.palette.canary },
-	{ name = "Maps", icon = "WorldMap", label = "Maps", accent = tokens.palette.accent },
-	{ name = "Stats", icon = "Stats", label = "Stats", accent = tokens.palette.pink },
+	{ name = "MiniGames", icon = "MiniGames", label = "Mini-Games" },
+	{ name = "Maps", icon = "WorldMap", label = "Maps" },
+	{ name = "Stats", icon = "Stats", label = "Stats" },
 }
 
 local function buildColumn(
@@ -225,7 +226,6 @@ local function buildColumn(
 			xCenter,
 			startY + (i - 1) * spacing,
 			scale,
-			button.accent,
 			lobby
 		)
 		btn.Activated:Connect(function()
@@ -340,14 +340,22 @@ function Lobby._build(self: Lobby)
 	-- RIGHT nav column
 	buildColumn(root, RIGHT_BUTTONS, 0.89, 0.18, 0.18, 0.11, self)
 
-	-- Bottom bar (compact, bottom thumb-zone): LV badge | level track | 0 / 100 | coins
+	-- Bottom level cluster: LV badge | progress track | 0/100 pill | coin pill.
+	-- Centered horizontally as one group with even gaps (review round-2 moved the
+	-- badge to x0.11 y0.91 to clear the Packs button; nudging it toward center keeps
+	-- that vertical clearance and also parks it off the left button column).
+	-- Item widths (0.082 + 0.28 + 0.10 + 0.11 = 0.572), even gap 0.02 => group width
+	-- 0.632, centered at 0.5 => centers 0.225 / 0.426 / 0.636 / 0.761.
+	-- Margins to the button columns (right edge x0.165, left edge x0.835) are 0.019 —
+	-- no overlap. Layout is Scale-based under a uniform UIScale (computeScale 0.55..1),
+	-- so relative spacing is preserved at mobile scale: no new overlap or edge breach.
 	local barY = 0.91
 
 	-- Level badge: Level icon + "LV 1"
 	local levelBadge = Instance.new("Frame")
 	levelBadge.Name = "LevelBadge"
 	levelBadge.Parent = root
-	levelBadge.Position = UDim2.fromScale(0.11, barY)
+	levelBadge.Position = UDim2.fromScale(0.225, barY)
 	levelBadge.Size = UDim2.fromScale(0.082, 0.044)
 	levelBadge.AnchorPoint = Vector2.new(0.5, 0.5)
 	levelBadge.BackgroundColor3 = p.base
@@ -383,7 +391,7 @@ function Lobby._build(self: Lobby)
 	local levelTrack = Instance.new("Frame")
 	levelTrack.Name = "LevelTrack"
 	levelTrack.Parent = root
-	levelTrack.Position = UDim2.fromScale(0.33, barY)
+	levelTrack.Position = UDim2.fromScale(0.426, barY)
 	levelTrack.Size = UDim2.fromScale(0.28, 0.036)
 	levelTrack.AnchorPoint = Vector2.new(0.5, 0.5)
 	levelTrack.BackgroundColor3 = p.base
@@ -406,7 +414,7 @@ function Lobby._build(self: Lobby)
 	local progressPill = Instance.new("Frame")
 	progressPill.Name = "ProgressPill"
 	progressPill.Parent = root
-	progressPill.Position = UDim2.fromScale(0.52, barY)
+	progressPill.Position = UDim2.fromScale(0.636, barY)
 	progressPill.Size = UDim2.fromScale(0.1, 0.04)
 	progressPill.AnchorPoint = Vector2.new(0.5, 0.5)
 	progressPill.BackgroundColor3 = p.base
@@ -430,7 +438,7 @@ function Lobby._build(self: Lobby)
 	local coinFrame = Instance.new("Frame")
 	coinFrame.Name = "CoinCount"
 	coinFrame.Parent = root
-	coinFrame.Position = UDim2.fromScale(0.7, barY)
+	coinFrame.Position = UDim2.fromScale(0.761, barY)
 	coinFrame.Size = UDim2.fromScale(0.11, 0.044)
 	coinFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	coinFrame.BackgroundColor3 = p.base
@@ -472,7 +480,7 @@ function Lobby._build(self: Lobby)
 	self._tooltip.BackgroundTransparency = 0.25
 	self._tooltip.BackgroundColor3 = p.navy
 	self._tooltip.BorderSizePixel = 0
-	self._tooltip.Size = UDim2.fromOffset(200, 50)
+	self._tooltip.Size = UDim2.fromOffset(100, 25)
 	self._tooltip.TextColor3 = tokens.palette.text
 	self._tooltip.TextStrokeColor3 = p.navy
 	self._tooltip.TextStrokeTransparency = 0.55
@@ -485,25 +493,35 @@ function Lobby._build(self: Lobby)
 	self._tooltip.ZIndex = 100
 	newUICorner(tokens.radii.md).Parent = self._tooltip
 	newStroke(tokens.palette.canary, 1, 0.6).Parent = self._tooltip
-	newTextSizeConstraint(12, self._tooltip)
+	newTextSizeConstraint(6, self._tooltip)
 end
 
 function Lobby._connect(self: Lobby)
 	local function bind(event: RemoteEvent)
+		if self._eventConn then
+			self._eventConn:Disconnect()
+			self._eventConn = nil
+		end
 		self._eventConn = event.OnClientEvent:Connect(function(payload: LobbyPayload)
 			self:_onPayload(payload)
 		end)
+	end
+
+	local function onChildAdded(child: Instance)
+		if child.Name == "LobbyStateEvent" and child:IsA("RemoteEvent") then
+			bind(child)
+			if self._childAddedConn then
+				self._childAddedConn:Disconnect()
+				self._childAddedConn = nil
+			end
+		end
 	end
 
 	local existing = ReplicatedStorage:FindFirstChild("LobbyStateEvent")
 	if existing ~= nil and existing:IsA("RemoteEvent") then
 		bind(existing)
 	else
-		ReplicatedStorage.ChildAdded:Connect(function(child: Instance)
-			if child.Name == "LobbyStateEvent" and child:IsA("RemoteEvent") then
-				bind(child)
-			end
-		end)
+		self._childAddedConn = ReplicatedStorage.ChildAdded:Connect(onChildAdded)
 	end
 end
 

@@ -4,15 +4,15 @@
 -- via the button factory, so no button can miss its feedback (Finding 5).
 --   hover (PC MouseEnter) -> keyboard click,      127105730240202
 --   press  (Activated, all devices) -> pop click, 138567614125924
--- Volume is a modest ~0.3 so clicks never startle the 9-13 audience. These IDs are
--- registered in docs/ASSETS.md (audio table) — this file only wires them, ASSETS.md
--- is not edited here.
+-- Volume raised from a modest ~0.3 to ~0.45 so pop feedback is noticed during
+-- live playtests (Operator: "hover and click pop sounds too quiet"), while keeping
+-- the soft pop character and the registered asset IDs (docs/ASSETS.md) unchanged.
 
 local SoundService = game:GetService("SoundService")
 
 local HOVER_ASSET = "rbxassetid://127105730240202"
 local CLICK_ASSET = "rbxassetid://138567614125924"
-local VOLUME = 0.3
+local VOLUME = 0.45
 
 local function newSound(name: string, asset: string): Sound
 	local sound = Instance.new("Sound")
