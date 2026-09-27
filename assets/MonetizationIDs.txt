@@ -1,0 +1,19 @@
+# assets/MonetizationIDs.txt - Image-type upload 2026-09-27 20:48
+# name=rbxassetid - source of truth for shop icons and reward previews
+Celebration Emote=134244621286962
+Coin Starter Pack=84995738507820
+Dance Emote=105812170122928
+Emote pack=138461984056045
+Gift Box=75136744544530
+Glowing Aura=133332792618061
+Golden Crown Trail=136308570690152
+Point Emote=118033762175014
+Premium Coin Pack=84671549405033
+Sit Emote=101717680487675
+Standard Coin pack=120448396679309
+Starter Bundle=82020605779904
+Supporter Nametag=110262811785349
+Taunt Emote=129997123779943
+VIP Crown=114134285767791
+VIP Supporter=73703813474838
+Wave Emote=81092024808655
