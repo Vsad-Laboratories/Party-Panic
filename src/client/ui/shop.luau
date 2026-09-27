@@ -25,7 +25,16 @@ local Profile = require(script.Parent.Profile)
 local PLAYER = Players.LocalPlayer
 local PLAYER_GUI = PLAYER:WaitForChild("PlayerGui")
 
-local SHOP_EVENT: RemoteEvent = ReplicatedStorage:WaitForChild(MonetizationConfig.ShopPurchaseEvent)
+-- The purchase RemoteEvent is fetched lazily (not at require time) so a missing
+-- event can't hang the client — the SERVER (MonetizationService) is the source of
+-- truth for price/ownership/grants; the client only fires cosmeticId here.
+local function purchaseEvent(): RemoteEvent?
+	local ev = ReplicatedStorage:FindFirstChild(MonetizationConfig.ShopPurchaseEvent)
+	if ev and ev:IsA("RemoteEvent") then
+		return ev
+	end
+	return nil
+end
 
 -- Load the GUI animation pack once (ModuleScript 136376766704443). Falls back to a
 -- thin TweenService shim if the pack isn't replicated, so the screen still animates.
@@ -440,7 +449,10 @@ function Shop:_buildCatalogItem(item: { [string]: any })
 	buy.Activated:Connect(function()
 		sounds.playClick()
 		self._picked = item
-		SHOP_EVENT:FireServer(item.cosmeticId)
+		local ev = purchaseEvent()
+		if ev then
+			ev:FireServer(item.cosmeticId)
+		end
 	end)
 end
 

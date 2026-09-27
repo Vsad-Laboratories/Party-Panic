@@ -504,8 +504,6 @@ function Lobby._build(self: Lobby)
 
 	self:_refreshEffectList()
 
-	self:_refreshEffectList()
-
 	-- Hover tooltip (reused single label, ZIndex above all HUD).
 	self._tooltip = Instance.new("TextLabel")
 	self._tooltip.Name = "Tooltip"
