@@ -13,7 +13,9 @@ LobbyHub.init()
 
 PlaytimeService.start()
 
--- Flush all player playtime on server shutdown (roblox-datastores: BindToClose)
+-- Flush all player playtime + clean up lobby on server shutdown (roblox-datastores: BindToClose)
 game:BindToClose(function()
+	machine:stop()
+	LobbyHub.cleanup()
 	PlaytimeService.shutdown()
 end)

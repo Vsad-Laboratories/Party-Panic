@@ -19,29 +19,37 @@ function LobbyMachine.new()
 	self.currentRoundName = ""
 	self.lastResult = nil
 	self.stateEvent = nil
+	self._connections = {}
 	return self
 end
 
 function LobbyMachine:_bindPlayers()
 	for _, player in ipairs(Players:GetPlayers()) do
 		table.insert(self.players, player)
-	end
-	Players.PlayerAdded:Connect(function(player)
-		table.insert(self.players, player)
-		print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
 		Placements.placePlayer(player)
-		self:_publishState()
-	end)
-	Players.PlayerRemoving:Connect(function(player)
-		Placements.unhook(player)
-		for i, p in ipairs(self.players) do
-			if p == player then
-				table.remove(self.players, i)
-				break
+	end
+	table.insert(
+		self._connections,
+		Players.PlayerAdded:Connect(function(player)
+			table.insert(self.players, player)
+			print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
+			Placements.placePlayer(player)
+			self:_publishState()
+		end)
+	)
+	table.insert(
+		self._connections,
+		Players.PlayerRemoving:Connect(function(player)
+			Placements.unhook(player)
+			for i, p in ipairs(self.players) do
+				if p == player then
+					table.remove(self.players, i)
+					break
+				end
 			end
-		end
-		self:_publishState()
-	end)
+			self:_publishState()
+		end)
+	)
 end
 
 function LobbyMachine:_createStateEvent()
@@ -79,6 +87,18 @@ function LobbyMachine:start()
 	Placements.placeLobby(self.players)
 	self:_publishState()
 	print("[PartyPanic] lobby machine started — state: Waiting (free-roam)")
+end
+
+function LobbyMachine:stop()
+	for _, conn in ipairs(self._connections) do
+		conn:Disconnect()
+	end
+	self._connections = {}
+	self.players = {}
+	if self.stateEvent then
+		self.stateEvent:Destroy()
+		self.stateEvent = nil
+	end
 end
 
 return LobbyMachine

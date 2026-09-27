@@ -67,6 +67,7 @@ type Lobby = {
 	_tooltipTween: Tween?,
 	_tooltipTask: thread?,
 	_eventConn: RBXScriptConnection?,
+	_childAddedConn: RBXScriptConnection?,
 	_resizeConn: RBXScriptConnection?,
 	_build: (Lobby) -> (),
 	_connect: (Lobby) -> (),
@@ -490,20 +491,30 @@ end
 
 function Lobby._connect(self: Lobby)
 	local function bind(event: RemoteEvent)
+		if self._eventConn then
+			self._eventConn:Disconnect()
+			self._eventConn = nil
+		end
 		self._eventConn = event.OnClientEvent:Connect(function(payload: LobbyPayload)
 			self:_onPayload(payload)
 		end)
+	end
+
+	local function onChildAdded(child: Instance)
+		if child.Name == "LobbyStateEvent" and child:IsA("RemoteEvent") then
+			bind(child)
+			if self._childAddedConn then
+				self._childAddedConn:Disconnect()
+				self._childAddedConn = nil
+			end
+		end
 	end
 
 	local existing = ReplicatedStorage:FindFirstChild("LobbyStateEvent")
 	if existing ~= nil and existing:IsA("RemoteEvent") then
 		bind(existing)
 	else
-		ReplicatedStorage.ChildAdded:Connect(function(child: Instance)
-			if child.Name == "LobbyStateEvent" and child:IsA("RemoteEvent") then
-				bind(child)
-			end
-		end)
+		self._childAddedConn = ReplicatedStorage.ChildAdded:Connect(onChildAdded)
 	end
 end
 

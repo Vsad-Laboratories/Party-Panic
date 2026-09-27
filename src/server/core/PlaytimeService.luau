@@ -121,8 +121,8 @@ function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 	return false
 end
 
-function PlaytimeService._getSessionSeconds(player: Player): number
-	return tick() - (PlaytimeService._sessionStart[player.UserId] or tick())
+function PlaytimeService._getSessionSeconds(userId: number): number
+	return tick() - (PlaytimeService._sessionStart[userId] or tick())
 end
 
 -- On join: load persisted base. On load ERROR (not missing key), do NOT arm
@@ -155,7 +155,7 @@ function PlaytimeService._onPlayerRemoving(player: Player)
 		PlaytimeService._pendingLeave[player.UserId] = true
 		return
 	end
-	local sessionSeconds = PlaytimeService._getSessionSeconds(player)
+	local sessionSeconds = PlaytimeService._getSessionSeconds(player.UserId)
 	local delta = (PlaytimeService._sessionDelta[player.UserId] or 0) + sessionSeconds
 	local saved = PlaytimeService._savePlayer(player.UserId, delta)
 	if saved then
@@ -182,29 +182,36 @@ function PlaytimeService._saveAll()
 	PlaytimeService._saving = true
 	for userId in pairs(PlaytimeService._sessionStart) do
 		if not PlaytimeService._saveInFlight[userId] then
-			local session = PlaytimeService._getSessionSeconds({ UserId = userId })
+			local session = PlaytimeService._getSessionSeconds(userId)
 			local delta = (PlaytimeService._sessionDelta[userId] or 0) + session
 			local saved = PlaytimeService._savePlayer(userId, delta)
 			if saved then
 				if Players:GetPlayerByUserId(userId) == nil then
+					-- Player is gone; leave-save already captured delta at line 187.
+					-- Clear _pendingLeave (set by _onPlayerRemoving) without a redundant
+					-- zero-delta save (was: finalDelta = 0 → wasteful DataStore round-trip).
 					PlaytimeService._loadedBase[userId] = nil
 					PlaytimeService._sessionDelta[userId] = nil
 					PlaytimeService._sessionStart[userId] = nil
+					PlaytimeService._pendingLeave[userId] = nil
 				else
 					PlaytimeService._loadedBase[userId] = (PlaytimeService._loadedBase[userId] or 0) + delta
 					PlaytimeService._sessionDelta[userId] = 0
 					PlaytimeService._sessionStart[userId] = tick()
-				end
-			end
-			if PlaytimeService._pendingLeave[userId] then
-				PlaytimeService._pendingLeave[userId] = nil
-				local session2 = PlaytimeService._getSessionSeconds({ UserId = userId })
-				local finalDelta = (PlaytimeService._sessionDelta[userId] or 0) + session2
-				local leaveSaved = PlaytimeService._savePlayer(userId, finalDelta)
-				if leaveSaved then
-					PlaytimeService._loadedBase[userId] = nil
-					PlaytimeService._sessionDelta[userId] = nil
-					PlaytimeService._sessionStart[userId] = nil
+					-- Consume _pendingLeave: PlayerRemoving fired while a save was in-flight.
+					-- The save at line 187 captured delta up to that point; now capture the
+					-- remaining session since the reset above and do the final leave-save.
+					if PlaytimeService._pendingLeave[userId] then
+						PlaytimeService._pendingLeave[userId] = nil
+						local session2 = PlaytimeService._getSessionSeconds(userId)
+						local finalDelta = (PlaytimeService._sessionDelta[userId] or 0) + session2
+						local leaveSaved = PlaytimeService._savePlayer(userId, finalDelta)
+						if leaveSaved then
+							PlaytimeService._loadedBase[userId] = nil
+							PlaytimeService._sessionDelta[userId] = nil
+							PlaytimeService._sessionStart[userId] = nil
+						end
+					end
 				end
 			end
 		end
