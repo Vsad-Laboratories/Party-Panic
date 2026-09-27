@@ -339,14 +339,22 @@ function Lobby._build(self: Lobby)
 	-- RIGHT nav column
 	buildColumn(root, RIGHT_BUTTONS, 0.89, 0.18, 0.18, 0.11, self)
 
-	-- Bottom bar (compact, bottom thumb-zone): LV badge | level track | 0 / 100 | coins
+	-- Bottom level cluster: LV badge | progress track | 0/100 pill | coin pill.
+	-- Centered horizontally as one group with even gaps (review round-2 moved the
+	-- badge to x0.11 y0.91 to clear the Packs button; nudging it toward center keeps
+	-- that vertical clearance and also parks it off the left button column).
+	-- Item widths (0.082 + 0.28 + 0.10 + 0.11 = 0.572), even gap 0.02 => group width
+	-- 0.632, centered at 0.5 => centers 0.225 / 0.426 / 0.636 / 0.761.
+	-- Margins to the button columns (right edge x0.165, left edge x0.835) are 0.019 —
+	-- no overlap. Layout is Scale-based under a uniform UIScale (computeScale 0.55..1),
+	-- so relative spacing is preserved at mobile scale: no new overlap or edge breach.
 	local barY = 0.91
 
 	-- Level badge: Level icon + "LV 1"
 	local levelBadge = Instance.new("Frame")
 	levelBadge.Name = "LevelBadge"
 	levelBadge.Parent = root
-	levelBadge.Position = UDim2.fromScale(0.11, barY)
+	levelBadge.Position = UDim2.fromScale(0.225, barY)
 	levelBadge.Size = UDim2.fromScale(0.082, 0.044)
 	levelBadge.AnchorPoint = Vector2.new(0.5, 0.5)
 	levelBadge.BackgroundColor3 = p.base
@@ -382,7 +390,7 @@ function Lobby._build(self: Lobby)
 	local levelTrack = Instance.new("Frame")
 	levelTrack.Name = "LevelTrack"
 	levelTrack.Parent = root
-	levelTrack.Position = UDim2.fromScale(0.33, barY)
+	levelTrack.Position = UDim2.fromScale(0.426, barY)
 	levelTrack.Size = UDim2.fromScale(0.28, 0.036)
 	levelTrack.AnchorPoint = Vector2.new(0.5, 0.5)
 	levelTrack.BackgroundColor3 = p.base
@@ -405,7 +413,7 @@ function Lobby._build(self: Lobby)
 	local progressPill = Instance.new("Frame")
 	progressPill.Name = "ProgressPill"
 	progressPill.Parent = root
-	progressPill.Position = UDim2.fromScale(0.52, barY)
+	progressPill.Position = UDim2.fromScale(0.636, barY)
 	progressPill.Size = UDim2.fromScale(0.1, 0.04)
 	progressPill.AnchorPoint = Vector2.new(0.5, 0.5)
 	progressPill.BackgroundColor3 = p.base
@@ -429,7 +437,7 @@ function Lobby._build(self: Lobby)
 	local coinFrame = Instance.new("Frame")
 	coinFrame.Name = "CoinCount"
 	coinFrame.Parent = root
-	coinFrame.Position = UDim2.fromScale(0.7, barY)
+	coinFrame.Position = UDim2.fromScale(0.761, barY)
 	coinFrame.Size = UDim2.fromScale(0.11, 0.044)
 	coinFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	coinFrame.BackgroundColor3 = p.base
