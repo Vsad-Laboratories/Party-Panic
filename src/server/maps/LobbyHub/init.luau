@@ -1,11 +1,16 @@
--- Lobby Hub map init: Lobby base v2 builder/cleaner (oval stage; props = dressing PR).
+-- Lobby Hub map init: Lobby base v3 builder/cleaner (footprint x2, heights unchanged).
+-- Spawn: ONE center SpawnLocation on the platform (deterministic).
+-- 12 perimeter pads are plain anchored Parts (round-placement contract data only).
+-- Dressing assets loaded via InsertService (scripts stripped per ASSETS.md).
 local Workspace = game:GetService("Workspace")
+local InsertService = game:GetService("InsertService")
 local Lighting = game:GetService("Lighting")
 
 local config = require(script.config)
 
 local LobbyHub = {}
 LobbyHub._parts = {} -- every part created here is owned + destroyed by cleanup()
+LobbyHub._assets = {} -- loaded asset models for cleanup
 
 -- Flat cylinder: axis rotated to vertical so the circular face is in the X-Z plane
 -- (Y == Z kept equal on purpose; unequal-cylinder rendering is engine-contested).
@@ -50,6 +55,24 @@ local function createEllipseBand(spec)
 	end
 end
 
+-- Load an asset, strip scripts, and place it at the given position.
+local function loadAsset(assetId, parent, position)
+	local asset = InsertService:LoadAsset(assetId)
+	for _, descendant in ipairs(asset:GetDescendants()) do
+		if descendant:IsA("Script") or descendant:IsA("LocalScript") or descendant:IsA("ModuleScript") then
+			descendant:Destroy()
+		end
+	end
+	if asset.PrimaryPart then
+		asset:SetPrimaryPartCFrame(CFrame.new(position))
+	else
+		asset:MoveTo(position)
+	end
+	asset.Parent = parent
+	table.insert(LobbyHub._assets, asset)
+	return asset
+end
+
 function LobbyHub.init()
 	-- Ground disc (top y=1) and central platform (top y=3)
 	createDisc(config.groundDisc)
@@ -61,20 +84,48 @@ function LobbyHub.init()
 	createEllipseBand(config.decorRing)
 	createEllipseBand(config.ringEdge)
 
-	-- 12 perimeter SpawnLocations, each facing the platform center
+	-- ONE center SpawnLocation: the ONLY active spawn point.
+	-- Deterministic spawn on the platform center (PR#17 spawn-stay).
+	local cs = config.centerSpawn
+	local centerSpawn = Instance.new("SpawnLocation")
+	centerSpawn.Size = cs.size
+	centerSpawn.CFrame = CFrame.new(cs.position)
+	centerSpawn.Material = cs.material
+	centerSpawn.Color = cs.color
+	centerSpawn.Anchored = true
+	centerSpawn.Neutral = cs.neutral
+	centerSpawn.AllowTeamChangeOnTouch = cs.allowTeamChangeOnTouch
+	centerSpawn.CanCollide = cs.canCollide
+	centerSpawn.Transparency = cs.transparency
+	centerSpawn.Name = cs.name
+	centerSpawn.Parent = Workspace
+	table.insert(LobbyHub._parts, centerSpawn)
+
+	-- 12 perimeter pads: PLAIN ANCHORED PARTS (NOT SpawnLocations).
+	-- Round-placement contract data for Placements; must NOT be where
+	-- a joining player spawns (PR#17 spawn-stay).
 	local ring = config.spawnRing
 	for i = 1, ring.count do
 		local theta = (i - 1) * (2 * math.pi) / ring.count
 		local pos = Vector3.new(ring.a * math.cos(theta), ring.y, ring.b * math.sin(theta))
-		local spawn = Instance.new("SpawnLocation")
-		spawn.Size = config.spawn.size
-		spawn.CFrame = CFrame.lookAt(pos, Vector3.new(0, ring.y, 0))
-		spawn.Material = config.spawn.material
-		spawn.Color = config.spawn.color
-		spawn.Anchored = true
-		spawn.Name = "PerimeterSpawn_" .. i
-		spawn.Parent = Workspace
-		table.insert(LobbyHub._parts, spawn)
+		local pad = Instance.new("Part")
+		pad.Size = config.spawn.size
+		pad.CFrame = CFrame.lookAt(pos, Vector3.new(0, ring.y, 0))
+		pad.Material = config.spawn.material
+		pad.Color = config.spawn.color
+		pad.Anchored = true
+		pad.CanCollide = false
+		pad.Transparency = 0.7
+		pad.Name = "PerimeterPad_" .. i
+		pad.Parent = Workspace
+		table.insert(LobbyHub._parts, pad)
+	end
+
+	-- Dressing assets (Batch 2, ASSETS.md). Scripts stripped on ingest.
+	for _, category in pairs(config.dressingAssets) do
+		for _, assetDesc in ipairs(category) do
+			loadAsset(assetDesc.id, Workspace, assetDesc.position)
+		end
 	end
 
 	-- Lighting setup (cozy low-poly daylight) and store original values
@@ -117,13 +168,20 @@ function LobbyHub.init()
 end
 
 function LobbyHub.cleanup()
-	-- Destroy all tracked parts (spawn locations are tracked here too)
+	-- Destroy all tracked parts
 	for _, part in ipairs(LobbyHub._parts) do
 		if part.Parent then
 			part:Destroy()
 		end
 	end
 	LobbyHub._parts = {}
+	-- Destroy loaded assets
+	for _, asset in ipairs(LobbyHub._assets) do
+		if asset.Parent then
+			asset:Destroy()
+		end
+	end
+	LobbyHub._assets = {}
 	-- Restore original lighting
 	if LobbyHub._originalLighting then
 		for k, v in pairs(LobbyHub._originalLighting) do
