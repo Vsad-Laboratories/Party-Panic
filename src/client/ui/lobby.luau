@@ -471,7 +471,7 @@ function Lobby._build(self: Lobby)
 	self._tooltip.BackgroundTransparency = 0.25
 	self._tooltip.BackgroundColor3 = p.navy
 	self._tooltip.BorderSizePixel = 0
-	self._tooltip.Size = UDim2.fromOffset(200, 50)
+	self._tooltip.Size = UDim2.fromOffset(100, 25)
 	self._tooltip.TextColor3 = tokens.palette.text
 	self._tooltip.TextStrokeColor3 = p.navy
 	self._tooltip.TextStrokeTransparency = 0.55
@@ -484,7 +484,7 @@ function Lobby._build(self: Lobby)
 	self._tooltip.ZIndex = 100
 	newUICorner(tokens.radii.md).Parent = self._tooltip
 	newStroke(tokens.palette.canary, 1, 0.6).Parent = self._tooltip
-	newTextSizeConstraint(12, self._tooltip)
+	newTextSizeConstraint(6, self._tooltip)
 end
 
 function Lobby._connect(self: Lobby)
