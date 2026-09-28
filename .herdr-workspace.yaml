@@ -1,0 +1,165 @@
+# .herdr-workspace.yaml — Party Panic Herdr Workspace Config
+# Load with: herdr workspace load .herdr-workspace.yaml
+
+workspace:
+  name: "Party Panic"
+  root: "~/Dev/Party Panic"
+
+panes:
+  # Leader / Orchestrator (main repo)
+  - id: "leader"
+    name: "🧠 Leader"
+    cwd: "~/Dev/Party Panic"
+    agent:
+      kind: "opencode"
+      args: ["--model", "nemotron-3-ultra-free"]
+    tabs:
+      - name: "Main"
+        cwd: "~/Dev/Party Panic"
+
+  - id: "orchestrator"
+    name: "🎭 Orchestrator"
+    cwd: "~/Dev/Party Panic"
+    agent:
+      kind: "opencode"
+      args: ["--model", "nemotron-3-ultra-free"]
+    tabs:
+      - name: "Tasks"
+        cwd: "~/Dev/Party Panic/.ai"
+
+  # Builder agents (dedicated worktrees)
+  - id: "backend"
+    name: "🔨 Backend"
+    cwd: "~/Dev/PartyPanic-backend"
+    agent:
+      kind: "kilo"
+      args: ["-m", "kilo/poolside/laguna-s-2.1:free"]
+    tabs:
+      - name: "Server"
+        cwd: "~/Dev/PartyPanic-backend/src/server"
+      - name: "Shared"
+        cwd: "~/Dev/PartyPanic-backend/src/shared"
+
+  - id: "client"
+    name: "🔨 Client"
+    cwd: "~/Dev/PartyPanic-client"
+    agent:
+      kind: "kilo"
+      args: ["-m", "kilo/poolside/laguna-s-2.1:free"]
+    tabs:
+      - name: "Client"
+        cwd: "~/Dev/PartyPanic-client/src/client"
+      - name: "Shared"
+        cwd: "~/Dev/PartyPanic-client/src/shared"
+
+  - id: "map"
+    name: "🗺️ Map"
+    cwd: "~/Dev/PartyPanic-map"
+    agent:
+      kind: "opencode"
+    tabs:
+      - name: "LobbyHub"
+        cwd: "~/Dev/PartyPanic-map/src/server/maps/LobbyHub"
+      - name: "Config"
+        cwd: "~/Dev/PartyPanic-map/src/server/maps"
+
+  - id: "ui"
+    name: "🎨 UI"
+    cwd: "~/Dev/PartyPanic-ui"
+    agent:
+      kind: "opencode"
+    tabs:
+      - name: "HUD"
+        cwd: "~/Dev/PartyPanic-ui/src/client/ui"
+      - name: "Shop"
+        cwd: "~/Dev/PartyPanic-ui/src/client/ui"
+
+  # Tester (ephemeral worktree)
+  - id: "tester"
+    name: "🧪 Tester"
+    cwd: "~/Dev/PartyPanic-test"
+    agent:
+      kind: "kilo"
+      args: ["-m", "kilo/poolside/laguna-s-2.1:free"]
+    tabs:
+      - name: "Tests"
+        cwd: "~/Dev/PartyPanic-test"
+
+  # Researcher / Docs (main repo)
+  - id: "researcher"
+    name: "🔍 Researcher"
+    cwd: "~/Dev/Party Panic"
+    agent:
+      kind: "opencode"
+    tabs:
+      - name: "Research"
+        cwd: "~/Dev/Party Panic/docs/research"
+
+  - id: "docs"
+    name: "📚 Docs"
+    cwd: "~/Dev/Party Panic"
+    agent:
+      kind: "opencode"
+    tabs:
+      - name: "Docs"
+        cwd: "~/Dev/Party Panic/docs"
+
+layout:
+  # Suggested layout (adjust to preference)
+  # Top row: Leader | Orchestrator
+  # Middle row: Backend | Client | Map | UI
+  # Bottom row: Tester | Researcher | Docs
+  rows: 3
+  cols: 4
+
+plugins:
+  # CORE
+  - "herdr/github"
+  - "herdr/git-worktree"
+  - "herdr/agent-router"
+
+  # OBSERVABILITY
+  - "herdr/agent-status"
+  - "herdr/project-status"
+  - "herdr/logs"
+
+  # AUTOMATION
+  - "herdr/workspace-bootstrap"
+  - "herdr/task-creation"
+  - "herdr/agent-spawning"
+
+# Agent routing rules
+routing:
+  # Leader routes to Orchestrator
+  leader:
+    targets: ["orchestrator"]
+  
+  # Orchestrator routes to all builders + tester + researcher + docs
+  orchestrator:
+    targets: ["backend", "client", "map", "ui", "tester", "researcher", "docs"]
+  
+  # Builders report to Orchestrator
+  backend:
+    targets: ["orchestrator"]
+  client:
+    targets: ["orchestrator"]
+  map:
+    targets: ["orchestrator"]
+  ui:
+    targets: ["orchestrator"]
+  
+  # Tester reports to Orchestrator
+  tester:
+    targets: ["orchestrator"]
+  
+  # Researcher reports to Orchestrator + Builder
+  researcher:
+    targets: ["orchestrator", "backend", "client", "map", "ui"]
+  
+  # Docs reports to Orchestrator
+  docs:
+    targets: ["orchestrator"]
+
+# Task status webhook (optional)
+webhooks:
+  task_events: "http://localhost:8080/herdr/tasks"  # if using external dashboard
