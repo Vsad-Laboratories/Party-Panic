@@ -1,0 +1,71 @@
+name: Automatic Jules Task
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 3 * * *" # Every day at 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+jobs:
+  jules:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Invoke Jules
+        uses: google-labs-code/jules-invoke@v1
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: main
+          prompt: |
+            Overall whole-game review AND fixes for Party Panic
+            (github.com/Vsad-Laboratories/Party-Panic — Roblox Luau party royale
+            for kids 9–13, ~35 merged PRs of history).
+
+            The CURRENT tree on main is the source of truth; history exists only
+            for context. Do not review PR-by-PR — review the whole game.
+
+            READ FIRST: docs/REVIEW.md (checklist C1–C7), .ai/DECISIONS.md
+            (DEC-005 scope boundaries, DEC-018 coin contract), Vision.md
+            (project state), docs/agents/*.md (role charters).
+
+            PART 1 — REVIEW all of src/ (server, client, shared, maps):
+            1. Bugs, crashes, nil derefs, code that fails at runtime. There is no
+               test suite and no live runtime — reason every code path like the
+               interpreter would.
+            2. Exploit vectors: the client is never trusted. Currency, ownership,
+               and grant flows must be server-authoritative.
+            3. DataStore data-loss risks. These invariants must HOLD (verify, do
+               not change): single-writer save flag, presence-decides-reset vs
+               clear, chained leave save, fold-on-success, retain-on-failure,
+               ProcessReceipt idempotency.
+            4. Scope boundaries (DEC-005), dead code, connection leaks, unbounded
+               loops, O(n²) work per event, join/leave race conditions.
+            5. Gates must pass: stylua --check . && selene src && rojo build
+               -o build/PartyPanic.rbxlx → 0 errors / 0 warnings / 0 parse errors.
+            6. If any pull request is open at run time, leave a review on it:
+               verdict word exactly APPROVE or REQUEST CHANGES, plus numbered
+               findings (file:line, severity, evidence quoted from code).
+
+            PART 2 — FIX only clear, reproducible defects found in Part 1:
+            1. Minimal diffs. No refactors, no style rewrites, no new
+               dependencies, no features.
+            2. Do NOT build queued features (Shop screen, level/xp progression,
+               new rounds) — report gaps as findings instead.
+            3. Do NOT modify: .github/ workflows, secrets, Vision.md, .ai/
+               decision records, docs/ charters, or any economy write invariant
+               listed in Part 1 point 3.
+            4. Gates VERBATIM green before opening the PR — paste the output.
+
+            OUTPUT — one branch agent/jules-review, ONE PR to main:
+            - PR body = numbered findings (file:line, severity, evidence),
+              what you fixed (with gate output), what you deliberately left and
+              why, skills applied (roblox-* skills from ~/.agents/skills).
+            - If nothing is clearly broken: open no PR — put the findings
+              summary in your session report only.
