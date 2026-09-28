@@ -10,6 +10,11 @@
 -- UX law: docs/UX.md (BuilderSans FontFace, TextScaled+UITextSizeConstraint, 120ms
 -- tooltips per Operator spec, no mock data, no opaque overlay). Operator playtest
 -- report = spec.
+--
+-- Geometry: every control is sized in px from tokens.controls and scaled by the single
+-- ScreenGui UIScale. Never size a control with fromScale(w, w) — that makes a "square"
+-- button rectangular on any non-square viewport, which is what left the icons floating
+-- inside dead hitboxes.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -72,8 +77,8 @@ type Lobby = {
 	_build: (Lobby) -> (),
 	_connect: (Lobby) -> (),
 	_onPayload: (Lobby, LobbyPayload) -> (),
-	_scheduleTooltip: (Lobby, text: string, xScale: number, yScale: number) -> (),
-	_showTooltip: (Lobby, text: string, xScale: number, yScale: number) -> (),
+	_scheduleTooltip: (Lobby, text: string, x: number, y: number, onLeft: boolean) -> (),
+	_showTooltip: (Lobby, text: string, x: number, y: number, onLeft: boolean) -> (),
 	_hideTooltip: (Lobby) -> (),
 	_refreshScale: (Lobby) -> (),
 }
@@ -136,29 +141,31 @@ local function newLabel(
 	return label
 end
 
--- Icon button factory: 1:1 square ImageButton, ScaleType Fit, hover tint + hover sound,
--- press tint + click sound, and a scheduled tooltip. Wired through sounds.luau so no
--- button can miss feedback (GOAL a/f, Finding 5). Icon-only per docs/UX.md #30/#4
--- (the tooltip carries the friendly name, satisfying #30 without caption clutter).
--- Uniform clean box: navy panel + transparency + UICorner, no per-button stroke
--- (Operator: buttons were "plain uniform boxes" with coloured accents — now every
--- button is the same rounded navy box with only the icon inside).
+-- Icon button factory: the button rect IS the icon rect — one square px box under the
+-- single UIScale, ScaleType Fit, so the clickable area and the visible glyph can never
+-- drift apart (Operator: "the Icon and hitbox of buttons are not the same size"). Hover
+-- tint + hover sound, press tint + click sound, and a scheduled tooltip. Wired through
+-- sounds.luau so no button can miss feedback (GOAL a/f, Finding 5). Icon-only per
+-- docs/UX.md #30/#4 (the tooltip carries the friendly name, satisfying #30 without
+-- caption clutter). Uniform clean box: navy panel + transparency + UICorner, no
+-- per-button stroke (Operator: buttons were "plain uniform boxes" with coloured accents
+-- — now every button is the same rounded navy box with only the icon inside).
 local function newButton(
 	name: string,
 	parent: Instance,
 	iconName: string,
 	label: string,
-	xScale: number,
-	yScale: number,
-	scale: number,
+	position: UDim2,
+	tooltipX: number,
+	tooltipOnLeft: boolean,
 	lobby: Lobby
 ): ImageButton
 	local button = Instance.new("ImageButton")
 	button.Name = name
 	button.Parent = parent
 	button.AnchorPoint = Vector2.new(0.5, 0.5)
-	button.Position = UDim2.fromScale(xScale, yScale)
-	button.Size = UDim2.fromScale(scale, scale)
+	button.Position = position
+	button.Size = UDim2.fromOffset(tokens.controls.button, tokens.controls.button)
 	button.BackgroundColor3 = tokens.palette.navy
 	button.BackgroundTransparency = 0.15
 	button.BorderSizePixel = 0
@@ -171,7 +178,9 @@ local function newButton(
 	button.MouseEnter:Connect(function()
 		button.ImageColor3 = tokens.palette.canary
 		sounds.playHover()
-		lobby:_scheduleTooltip(label, xScale, yScale)
+		-- Rails anchor buttons at RAIL_CENTRE_Y, so position.Y.Offset is the button's
+		-- own vertical offset from that line — the tooltip lines up with its button.
+		lobby:_scheduleTooltip(label, tooltipX, position.Y.Offset, tooltipOnLeft)
 	end)
 	button.MouseLeave:Connect(function()
 		button.ImageColor3 = tokens.palette.text
@@ -209,24 +218,42 @@ local RIGHT_BUTTONS: { ButtonSpec } = {
 	{ name = "Stats", icon = "Stats", label = "Stats" },
 }
 
-local function buildColumn(
-	parent: Instance,
-	buttons: { ButtonSpec },
-	xCenter: number,
-	startY: number,
-	spacing: number,
-	scale: number,
-	lobby: Lobby
-)
+-- Vertical rail: one pitch for every button, centred in the free band between the header
+-- and the bottom bar, and mirrored edge margins (tokens.controls.edge). The old columns
+-- each hardcoded their own start Y and their own spacing (0.16 left vs 0.18 right in
+-- screen fractions), so the two rails disagreed and drifted with the aspect ratio.
+--
+-- 0.57 (not 0.5): a 5-button rail is 348px tall before scaling, so on a short viewport
+-- (landscape phone, UIScale 0.57) a screen-centred rail ran its first button into the
+-- top-left player pill. 0.57 centres it in the gap the header and bottom bar leave.
+local RAIL_CENTRE_Y = 0.57
+
+local function buildColumn(parent: Instance, buttons: { ButtonSpec }, fromRight: boolean, lobby: Lobby)
+	local c = tokens.controls
+	local pitch = c.button + c.buttonGap
+	local centreX = c.edge + c.button / 2
+	-- Tooltip sits just outside the rail, measured from the SCREEN edge: rail outer edge
+	-- (edge + button) + gap. Never over the button, so it cannot eat clicks.
+	local tooltipX = c.edge + c.button + c.tipGap
+	-- Centre the whole column so a 5-button rail and a 3-button rail both look deliberate.
+	local firstCentreY = -((#buttons - 1) * pitch + c.button) / 2
+
 	for i, button in ipairs(buttons) do
+		local y = firstCentreY + (i - 1) * pitch
+		local x
+		if fromRight then
+			x = UDim2.new(1, -centreX, RAIL_CENTRE_Y, y)
+		else
+			x = UDim2.new(0, centreX, RAIL_CENTRE_Y, y)
+		end
 		local btn = newButton(
 			button.name .. "Button",
 			parent,
 			button.icon,
 			button.label,
-			xCenter,
-			startY + (i - 1) * spacing,
-			scale,
+			x,
+			tooltipX,
+			fromRight, -- left rail tooltips open rightwards, right rail leftwards
 			lobby
 		)
 		btn.Activated:Connect(function()
@@ -251,6 +278,10 @@ function Lobby.new(): Lobby
 	self._screenGui.Name = "PartyPanicLobby"
 	self._screenGui.ResetOnSpawn = false
 	self._screenGui.IgnoreGuiInset = true
+	-- Core UI safe insets (only honoured with IgnoreGuiInset): keeps the top-left player
+	-- pill clear of the Roblox topbar and the bottom bar clear of the phone home bar
+	-- (docs/UX.md #9 — thumb-zone safe area).
+	self._screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	self._screenGui.DisplayOrder = 0
 	self._screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	self._screenGui.Parent = playerGui
@@ -278,6 +309,7 @@ end
 function Lobby._build(self: Lobby)
 	local root = self._screenGui
 	local p = tokens.palette
+	local c = tokens.controls
 
 	-- Transparent HUD container: NO opaque fill (GOAL c). Lets the LobbyHub scene show
 	-- through; panels/chips own their navy backdrops. Doubles as the AbsoluteSize sensor
@@ -289,16 +321,24 @@ function Lobby._build(self: Lobby)
 	self._background.BackgroundTransparency = 1
 	self._background.BorderSizePixel = 0
 
+	-- Top band. Screen-inset safe (ScreenGui.ScreenInsets below) plus a symmetric
+	-- tokens.controls.edge margin, so the player pill never lands under the Roblox
+	-- topbar and the title/status never collide with it at 480x800. The two centred
+	-- labels span the width between the margins and sit in their own band BELOW the pill.
+	local topY = c.edge
+	local bandW = 1
+	local bandOff = -c.edge * 2
+
 	-- Title + status (top-center). BuilderSans heading/body (docs/UX.md #1/#5).
 	newLabel(
 		"Title",
 		root,
 		"PARTY PANIC",
-		UDim2.fromScale(0.5, 0.04),
-		UDim2.fromScale(0.6, 0.08),
+		UDim2.new(0.5, 0, 0, topY + 56),
+		UDim2.new(bandW, bandOff, 0, 44),
 		tokens.textSizes.title,
 		p.accent,
-		Vector2.new(0.5, 0.5),
+		Vector2.new(0.5, 0),
 		0.6,
 		tokens.fonts.heading
 	)
@@ -306,11 +346,11 @@ function Lobby._build(self: Lobby)
 		"Status",
 		root,
 		"Lobby — explore the hub!",
-		UDim2.fromScale(0.5, 0.11),
-		UDim2.fromScale(0.6, 0.045),
+		UDim2.new(0.5, 0, 0, topY + 124),
+		UDim2.new(bandW, bandOff, 0, 26),
 		tokens.textSizes.body,
 		tokens.palette.text,
-		Vector2.new(0.5, 0.5),
+		Vector2.new(0.5, 0),
 		0.6
 	)
 
@@ -318,8 +358,8 @@ function Lobby._build(self: Lobby)
 	local playerPill = Instance.new("Frame")
 	playerPill.Name = "PlayerCount"
 	playerPill.Parent = root
-	playerPill.Position = UDim2.fromScale(0.04, 0.05)
-	playerPill.Size = UDim2.fromScale(0.13, 0.06)
+	playerPill.Position = UDim2.fromOffset(c.edge, topY)
+	playerPill.Size = UDim2.fromOffset(88, c.chipHeight)
 	playerPill.BackgroundColor3 = p.base
 	playerPill.BorderSizePixel = 0
 	newUICorner(tokens.radii.full).Parent = playerPill
@@ -330,76 +370,96 @@ function Lobby._build(self: Lobby)
 		playerPill,
 		"0 / " .. MAX_PLAYERS,
 		UDim2.fromScale(0.5, 0.5),
-		UDim2.fromScale(0.9, 0.82),
-		tokens.textSizes.pill,
+		UDim2.fromOffset(88 - tokens.spacing.sm * 2, c.chipHeight - tokens.spacing.sm * 2),
+		tokens.textSizes.body,
 		p.accent,
 		Vector2.new(0.5, 0.5)
 	)
 
 	-- LEFT nav column — icon-only ImageButtons (icons.luau)
-	buildColumn(root, LEFT_BUTTONS, 0.11, 0.18, 0.16, 0.11, self)
+	buildColumn(root, LEFT_BUTTONS, false, self)
 	-- RIGHT nav column
-	buildColumn(root, RIGHT_BUTTONS, 0.89, 0.18, 0.18, 0.11, self)
+	buildColumn(root, RIGHT_BUTTONS, true, self)
 
-	-- Bottom level cluster: LV badge | progress track | 0/100 pill | coin pill.
-	-- Centered horizontally as one group with even gaps (review round-2 moved the
-	-- badge to x0.11 y0.91 to clear the Packs button; nudging it toward center keeps
-	-- that vertical clearance and also parks it off the left button column).
-	-- Item widths (0.082 + 0.28 + 0.10 + 0.11 = 0.572), even gap 0.02 => group width
-	-- 0.632, centered at 0.5 => centers 0.225 / 0.426 / 0.636 / 0.761.
-	-- Margins to the button columns (right edge x0.165, left edge x0.835) are 0.019 —
-	-- no overlap. Layout is Scale-based under a uniform UIScale (computeScale 0.55..1),
-	-- so relative spacing is preserved at mobile scale: no new overlap or edge breach.
-	local barY = 0.91
+	-- Bottom bar: LV badge | progress track | 0/100 pill | coin pill. ONE owner for the
+	-- row: a UIListLayout inside a bottom-anchored bar that auto-sizes to its content, so
+	-- the gaps are uniform by construction and the group stays centred at any width.
+	-- The old build hand-computed four centre offsets from a comment (0.225 / 0.426 /
+	-- 0.636 / 0.761) in screen fractions: the group was ~250px wide on a phone but ~540px
+	-- on 16:9 desktop, and any text change moved chips independently.
+	local bar = Instance.new("Frame")
+	bar.Name = "BottomBar"
+	bar.Parent = root
+	bar.AnchorPoint = Vector2.new(0.5, 1)
+	bar.Position = UDim2.new(0.5, 0, 1, -c.edge)
+	bar.Size = UDim2.fromOffset(0, c.chipHeight)
+	bar.AutomaticSize = Enum.AutomaticSize.X -- content owns the width
+	bar.BackgroundTransparency = 1
+	bar.BorderSizePixel = 0
+
+	local barFlow = Instance.new("UIListLayout")
+	barFlow.FillDirection = Enum.FillDirection.Horizontal
+	barFlow.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	barFlow.SortOrder = Enum.SortOrder.LayoutOrder -- visual order, not alphabetical
+	barFlow.Padding = UDim.new(0, c.chipGap)
+	barFlow.Parent = bar
+
+	-- Icon slot inside a chip: square, or the art letterboxes (the old 0.42 x 0.7 slot
+	-- squeezed a square PNG into a wide gap and left dead space before the text).
+	local function newChipIcon(chip: Frame, iconName: string, tint: Color3): ImageLabel
+		local icon = Instance.new("ImageLabel")
+		icon.Name = "Icon"
+		icon.Parent = chip
+		icon.AnchorPoint = Vector2.new(0, 0.5)
+		icon.Position = UDim2.fromOffset(tokens.spacing.sm, 0)
+		icon.Size = UDim2.fromOffset(c.chipIcon, c.chipIcon)
+		icon.BackgroundTransparency = 1
+		icon.BorderSizePixel = 0
+		icon.Image = icons[iconName] or ""
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.ImageColor3 = tint
+		return icon
+	end
+
+	-- Chip chrome: one height, one padding, one icon+label rhythm for all four chips.
+	-- Width is the only content-shaped value (it follows the text the chip holds).
+	local function newChip(name: string, width: number, order: number, iconName: string?, tint: Color3?): Frame
+		local chip = Instance.new("Frame")
+		chip.Name = name
+		chip.LayoutOrder = order
+		chip.Parent = bar
+		chip.Size = UDim2.fromOffset(width, c.chipHeight)
+		chip.BackgroundColor3 = p.base
+		chip.BackgroundTransparency = 0.15
+		chip.BorderSizePixel = 0
+		newUICorner(tokens.radii.full).Parent = chip
+		newStroke(p.accent, 1, 0.55).Parent = chip
+		if iconName then
+			newChipIcon(chip, iconName, tint or p.accent)
+		end
+		return chip
+	end
+
+	-- Label box after the icon slot: pad + icon + gap, mirrored on the right.
+	local chipLabelX = tokens.spacing.sm + c.chipIcon + tokens.spacing.sm
+	local chipLabelH = 28
 
 	-- Level badge: Level icon + "LV 1"
-	local levelBadge = Instance.new("Frame")
-	levelBadge.Name = "LevelBadge"
-	levelBadge.Parent = root
-	levelBadge.Position = UDim2.fromScale(0.225, barY)
-	levelBadge.Size = UDim2.fromScale(0.082, 0.044)
-	levelBadge.AnchorPoint = Vector2.new(0.5, 0.5)
-	levelBadge.BackgroundColor3 = p.base
-	levelBadge.BackgroundTransparency = 0.15
-	levelBadge.BorderSizePixel = 0
-	newUICorner(tokens.radii.full).Parent = levelBadge
-	newStroke(p.accent, 1, 0.5).Parent = levelBadge
-
-	local levelIcon = Instance.new("ImageLabel")
-	levelIcon.Name = "LevelIcon"
-	levelIcon.Parent = levelBadge
-	levelIcon.AnchorPoint = Vector2.new(0, 0.5)
-	levelIcon.Position = UDim2.fromScale(0.1, 0.5)
-	levelIcon.Size = UDim2.fromScale(0.44, 0.7)
-	levelIcon.BackgroundTransparency = 1
-	levelIcon.BorderSizePixel = 0
-	levelIcon.Image = icons["Level"] or ""
-	levelIcon.ScaleType = Enum.ScaleType.Fit
-	levelIcon.ImageColor3 = p.accent
+	local levelBadge = newChip("LevelBadge", 96, 1, "Level", p.accent)
 
 	self._levelNumberLabel = newLabel(
 		"LevelNumber",
 		levelBadge,
 		"LV 1",
-		UDim2.fromScale(0.6, 0.5),
-		UDim2.fromScale(0.38, 0.72),
+		UDim2.fromOffset(chipLabelX, 0),
+		UDim2.fromOffset(96 - chipLabelX - tokens.spacing.sm, chipLabelH),
 		tokens.textSizes.caption,
 		tokens.palette.text,
 		Vector2.new(0, 0.5)
 	)
 
 	-- Level progress track + fill (compact, palette teal fill)
-	local levelTrack = Instance.new("Frame")
-	levelTrack.Name = "LevelTrack"
-	levelTrack.Parent = root
-	levelTrack.Position = UDim2.fromScale(0.426, barY)
-	levelTrack.Size = UDim2.fromScale(0.28, 0.036)
-	levelTrack.AnchorPoint = Vector2.new(0.5, 0.5)
-	levelTrack.BackgroundColor3 = p.base
-	levelTrack.BackgroundTransparency = 0.15
-	levelTrack.BorderSizePixel = 0
-	newUICorner(tokens.radii.sm).Parent = levelTrack
-	newStroke(p.accent, 1, 0.55).Parent = levelTrack
+	local levelTrack = newChip("LevelTrack", 120, 2)
 
 	self._levelFill = Instance.new("Frame")
 	self._levelFill.Name = "LevelFill"
@@ -409,63 +469,32 @@ function Lobby._build(self: Lobby)
 	self._levelFill.AnchorPoint = Vector2.new(0, 0.5)
 	self._levelFill.BackgroundColor3 = p.accent
 	self._levelFill.BorderSizePixel = 0
-	newUICorner(tokens.radii.sm).Parent = self._levelFill
+	-- Pill radius to match the track: a 6px-cornered fill pokes out of a full-radius track.
+	newUICorner(tokens.radii.full).Parent = self._levelFill
 
-	-- Progress text "0 / 100"
-	local progressPill = Instance.new("Frame")
-	progressPill.Name = "ProgressPill"
-	progressPill.Parent = root
-	progressPill.Position = UDim2.fromScale(0.636, barY)
-	progressPill.Size = UDim2.fromScale(0.1, 0.04)
-	progressPill.AnchorPoint = Vector2.new(0.5, 0.5)
-	progressPill.BackgroundColor3 = p.base
-	progressPill.BackgroundTransparency = 0.15
-	progressPill.BorderSizePixel = 0
-	newUICorner(tokens.radii.full).Parent = progressPill
-	newStroke(p.accent, 1, 0.55).Parent = progressPill
+	-- Progress text "0 / 100" (no icon: the label is the whole chip)
+	local progressPill = newChip("ProgressPill", 88, 3)
 
 	self._progressLabel = newLabel(
 		"Progress",
 		progressPill,
 		"0 / 100",
-		UDim2.fromScale(0.5, 0.5),
-		UDim2.fromScale(0.9, 0.8),
+		UDim2.fromOffset(tokens.spacing.sm, 0),
+		UDim2.fromOffset(88 - tokens.spacing.sm * 2, chipLabelH),
 		tokens.textSizes.caption,
 		tokens.palette.text,
-		Vector2.new(0.5, 0.5)
+		Vector2.new(0, 0.5)
 	)
 
 	-- Compact coin count: Coin icon (icons.luau) + number
-	local coinFrame = Instance.new("Frame")
-	coinFrame.Name = "CoinCount"
-	coinFrame.Parent = root
-	coinFrame.Position = UDim2.fromScale(0.761, barY)
-	coinFrame.Size = UDim2.fromScale(0.11, 0.044)
-	coinFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-	coinFrame.BackgroundColor3 = p.base
-	coinFrame.BackgroundTransparency = 0.15
-	coinFrame.BorderSizePixel = 0
-	newUICorner(tokens.radii.full).Parent = coinFrame
-	newStroke(p.accent, 1, 0.55).Parent = coinFrame
-
-	local coinIcon = Instance.new("ImageLabel")
-	coinIcon.Name = "CoinIcon"
-	coinIcon.Parent = coinFrame
-	coinIcon.AnchorPoint = Vector2.new(0, 0.5)
-	coinIcon.Position = UDim2.fromScale(0.08, 0.5)
-	coinIcon.Size = UDim2.fromScale(0.42, 0.7)
-	coinIcon.BackgroundTransparency = 1
-	coinIcon.BorderSizePixel = 0
-	coinIcon.Image = icons["Coin"] or ""
-	coinIcon.ScaleType = Enum.ScaleType.Fit
-	coinIcon.ImageColor3 = tokens.palette.canary
+	local coinFrame = newChip("CoinCount", 92, 4, "Coin", tokens.palette.canary)
 
 	self._coinCountLabel = newLabel(
 		"Count",
 		coinFrame,
 		"0",
-		UDim2.fromScale(0.6, 0.5),
-		UDim2.fromScale(0.38, 0.72),
+		UDim2.fromOffset(chipLabelX, 0),
+		UDim2.fromOffset(92 - chipLabelX - tokens.spacing.sm, chipLabelH),
 		tokens.textSizes.caption,
 		tokens.palette.text,
 		Vector2.new(0, 0.5)
@@ -481,7 +510,7 @@ function Lobby._build(self: Lobby)
 	self._tooltip.BackgroundTransparency = 0.25
 	self._tooltip.BackgroundColor3 = p.navy
 	self._tooltip.BorderSizePixel = 0
-	self._tooltip.Size = UDim2.fromOffset(100, 25)
+	self._tooltip.Size = UDim2.fromOffset(120, 32)
 	self._tooltip.TextColor3 = tokens.palette.text
 	self._tooltip.TextStrokeColor3 = p.navy
 	self._tooltip.TextStrokeTransparency = 0.55
@@ -494,7 +523,9 @@ function Lobby._build(self: Lobby)
 	self._tooltip.ZIndex = 100
 	newUICorner(tokens.radii.md).Parent = self._tooltip
 	newStroke(tokens.palette.canary, 1, 0.6).Parent = self._tooltip
-	newTextSizeConstraint(6, self._tooltip)
+	-- 14px floor, not 6: the tooltip is the ONLY name an icon-only button has
+	-- (docs/UX.md #5/#29), so it must clear the readable minimum.
+	newTextSizeConstraint(14, self._tooltip)
 end
 
 function Lobby._connect(self: Lobby)
@@ -553,26 +584,27 @@ end
 
 -- Tooltip lifecycle (GOAL b): show after a 0.12s delay; hide instantly on leave. PC
 -- hover only — MouseEnter/MouseLeave don't fire on touch. The tooltip sits beside the
--- button (never over it) so it cannot block clicks.
-function Lobby._scheduleTooltip(self: Lobby, text: string, xScale: number, yScale: number)
+-- button (never over it) so it cannot block clicks. Anchored in px from the rail edge,
+-- mirroring the edge margin — the old code offset by 0.11 of screen width, a value
+-- hardcoded to the old button width.
+function Lobby._scheduleTooltip(self: Lobby, text: string, x: number, y: number, onLeft: boolean)
 	if self._tooltipTask then
 		task.cancel(self._tooltipTask)
 	end
 	self._tooltipTask = task.delay(TOOLTIP_DELAY, function()
 		self._tooltipTask = nil -- fired; never task.cancel a completed thread (review note)
-		self:_showTooltip(text, xScale, yScale)
+		self:_showTooltip(text, x, y, onLeft)
 	end)
 end
 
-function Lobby._showTooltip(self: Lobby, text: string, xScale: number, yScale: number)
+function Lobby._showTooltip(self: Lobby, text: string, x: number, y: number, onLeft: boolean)
 	self._tooltip.Text = text
-	-- Place to the side away from the screen edge so it never covers the button.
-	if xScale < 0.5 then
-		self._tooltip.Position = UDim2.fromScale(xScale + 0.11, yScale)
-		self._tooltip.AnchorPoint = Vector2.new(0, 0.5)
-	else
-		self._tooltip.Position = UDim2.fromScale(xScale - 0.11, yScale)
+	if onLeft then
+		self._tooltip.Position = UDim2.new(1, -x, 0.5, y)
 		self._tooltip.AnchorPoint = Vector2.new(1, 0.5)
+	else
+		self._tooltip.Position = UDim2.fromOffset(x, y)
+		self._tooltip.AnchorPoint = Vector2.new(0, 0.5)
 	end
 	self._tooltip.Visible = true
 	self._tooltip.TextTransparency = 1
