@@ -1,7 +1,9 @@
--- Lobby Hub map init: Lobby base v3 builder/cleaner (footprint x2, heights unchanged).
--- Spawn: ONE center SpawnLocation on the platform (deterministic).
+-- Lobby Hub map init: Lobby base redesign to match assets/Reference/Lobby.jpg.
+-- Scale: ~140x80 studs oval (down from 280x210).
+-- Spawn: ONLY the mythical spawn plate asset (110144096035671) at center.
 -- 12 perimeter pads are plain anchored Parts (round-placement contract data only).
 -- Dressing assets loaded via InsertService (scripts stripped per ASSETS.md).
+-- All parts: CastShadow=true, ReceiveShadow=true.
 local Workspace = game:GetService("Workspace")
 local InsertService = game:GetService("InsertService")
 local Lighting = game:GetService("Lighting")
@@ -23,12 +25,14 @@ local function createDisc(description)
 	part.Color = description.color
 	part.Anchored = true
 	part.Name = description.name
+	part.CastShadow = true
+	part.ReceiveShadow = true
 	part.Parent = Workspace
 	table.insert(LobbyHub._parts, part)
 	return part
 end
 
--- Elliptical band of tangent-aligned boxes (wall, rim, ring, edge line share this).
+-- Elliptical band of tangent-aligned boxes (wall, rim share this).
 -- Segment length = arc approximation chord*(1+step^2/6): the resulting ~0.04-stud
 -- joint overlap hides hairline gaps at the outer face (same ratio the shipped
 -- circular LobbyHub walls used). Coplanar overlap there is sub-cm and invisible.
@@ -50,17 +54,26 @@ local function createEllipseBand(spec)
 		part.Color = spec.color
 		part.Anchored = true
 		part.Name = spec.name .. i
+		part.CastShadow = true
+		part.ReceiveShadow = true
 		part.Parent = Workspace
 		table.insert(LobbyHub._parts, part)
 	end
 end
 
--- Load an asset, strip scripts, and place it at the given position.
-local function loadAsset(assetId, parent, position)
+-- Load an asset, strip scripts, scale by factor, and place at the given position.
+local function loadAsset(assetId, parent, position, scale)
 	local asset = InsertService:LoadAsset(assetId)
 	for _, descendant in ipairs(asset:GetDescendants()) do
 		if descendant:IsA("Script") or descendant:IsA("LocalScript") or descendant:IsA("ModuleScript") then
 			descendant:Destroy()
+		end
+	end
+	if scale then
+		for _, descendant in ipairs(asset:GetDescendants()) do
+			if descendant:IsA("BasePart") then
+				descendant.Size = descendant.Size * scale
+			end
 		end
 	end
 	if asset.PrimaryPart then
@@ -74,30 +87,29 @@ local function loadAsset(assetId, parent, position)
 end
 
 function LobbyHub.init()
-	-- Ground disc (top y=1) and central platform (top y=3)
+	-- Ground disc (top y=1) and central platform (top y=4)
 	createDisc(config.groundDisc)
 	createDisc(config.platform)
 
-	-- Oval stage: wall, rim, decor ring, teal edge line
+	-- Oval stage: wall and top rim only (decorRing and ringEdge removed)
 	createEllipseBand(config.perimeterWall)
 	createEllipseBand(config.topRim)
-	createEllipseBand(config.decorRing)
-	createEllipseBand(config.ringEdge)
 
 	-- ONE center SpawnLocation: the ONLY active spawn point.
-	-- Deterministic spawn on the platform center (PR#17 spawn-stay).
-	local cs = config.centerSpawn
+	-- Deterministic spawn at platform center where mythical plate sits.
 	local centerSpawn = Instance.new("SpawnLocation")
-	centerSpawn.Size = cs.size
-	centerSpawn.CFrame = CFrame.new(cs.position)
-	centerSpawn.Material = cs.material
-	centerSpawn.Color = cs.color
+	centerSpawn.Size = config.spawn.size
+	centerSpawn.CFrame = CFrame.new(0, 4, 0)
+	centerSpawn.Material = config.spawn.material
+	centerSpawn.Color = config.spawn.color
 	centerSpawn.Anchored = true
-	centerSpawn.Neutral = cs.neutral
-	centerSpawn.AllowTeamChangeOnTouch = cs.allowTeamChangeOnTouch
-	centerSpawn.CanCollide = cs.canCollide
-	centerSpawn.Transparency = cs.transparency
-	centerSpawn.Name = cs.name
+	centerSpawn.Neutral = true
+	centerSpawn.AllowTeamChangeOnTouch = false
+	centerSpawn.CanCollide = false
+	centerSpawn.Transparency = 0.5
+	centerSpawn.Name = "CenterSpawn"
+	centerSpawn.CastShadow = true
+	centerSpawn.ReceiveShadow = true
 	centerSpawn.Parent = Workspace
 	table.insert(LobbyHub._parts, centerSpawn)
 
@@ -117,18 +129,25 @@ function LobbyHub.init()
 		pad.CanCollide = false
 		pad.Transparency = 0.7
 		pad.Name = "PerimeterPad_" .. i
+		pad.CastShadow = true
+		pad.ReceiveShadow = true
 		pad.Parent = Workspace
 		table.insert(LobbyHub._parts, pad)
 	end
 
 	-- Dressing assets (Batch 2, ASSETS.md). Scripts stripped on ingest.
+	-- Stalls scaled 1.2x; mythical plate at platform center.
 	for _, category in pairs(config.dressingAssets) do
 		for _, assetDesc in ipairs(category) do
-			loadAsset(assetDesc.id, Workspace, assetDesc.position)
+			local scale = 1.2
+			if assetDesc.name == "Leaderboard" then
+				scale = 1.0
+			end
+			loadAsset(assetDesc.id, Workspace, assetDesc.position, scale)
 		end
 	end
 
-	-- Lighting setup (cozy low-poly daylight) and store original values
+	-- Lighting overhaul: warm afternoon with sharp shadows and atmospheric haze
 	LobbyHub._originalLighting = {
 		Brightness = Lighting.Brightness,
 		Ambient = Lighting.Ambient,
@@ -139,14 +158,14 @@ function LobbyHub.init()
 		GlobalShadows = Lighting.GlobalShadows,
 		ShadowSoftness = Lighting.ShadowSoftness,
 	}
-	Lighting.Brightness = 2
-	Lighting.Ambient = Color3.fromRGB(150, 150, 150)
-	Lighting.OutdoorAmbient = Color3.fromRGB(180, 180, 200)
+	Lighting.Brightness = 2.5
+	Lighting.Ambient = Color3.fromRGB(160, 150, 140)
+	Lighting.OutdoorAmbient = Color3.fromRGB(180, 170, 160)
 	Lighting.TimeOfDay = "14:00:00"
-	Lighting.EnvironmentDiffuseScale = 0.5
-	Lighting.EnvironmentSpecularScale = 0.5
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.4
 	Lighting.GlobalShadows = true
-	Lighting.ShadowSoftness = 0.5
+	Lighting.ShadowSoftness = 0.3
 
 	local Atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	if not Atmosphere then
@@ -160,11 +179,11 @@ function LobbyHub.init()
 		Glare = Atmosphere.Glare,
 		Haze = Atmosphere.Haze,
 	}
-	Atmosphere.Density = 0.3
-	Atmosphere.Offset = 0.25
-	Atmosphere.Color = Color3.fromRGB(190, 200, 255)
-	Atmosphere.Glare = 0.2
-	Atmosphere.Haze = 0.5
+	Atmosphere.Density = 0.2
+	Atmosphere.Offset = 0.2
+	Atmosphere.Color = Color3.fromRGB(200, 190, 170)
+	Atmosphere.Glare = 0.3
+	Atmosphere.Haze = 0.3
 end
 
 function LobbyHub.cleanup()
