@@ -138,6 +138,9 @@ function PlaytimeService._onPlayerAdded(player: Player)
 		warn("[PlaytimeService] player " .. player.Name .. " skipped (load error); persistence disarmed for session")
 		return
 	end
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return
+	end
 	PlaytimeService._loadedBase[player.UserId] = loaded or 0
 	PlaytimeService._sessionDelta[player.UserId] = 0
 	PlaytimeService._sessionStart[player.UserId] = tick()
@@ -257,15 +260,17 @@ end
 
 function PlaytimeService.start()
 	PlaytimeService._initDataStore()
-	for _, player in ipairs(Players:GetPlayers()) do
-		PlaytimeService._onPlayerAdded(player)
-	end
 	Players.PlayerAdded:Connect(function(player)
 		PlaytimeService._onPlayerAdded(player)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		PlaytimeService._onPlayerRemoving(player)
 	end)
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			PlaytimeService._onPlayerAdded(player)
+		end)
+	end
 	PlaytimeService._tickAccumulator = 0
 	PlaytimeService._heartbeatConn = RunService.Heartbeat:Connect(function(dt)
 		PlaytimeService._tick(dt)

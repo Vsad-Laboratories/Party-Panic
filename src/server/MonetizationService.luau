@@ -174,7 +174,7 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
-	cache.coins = coins
+	cache.coins = (cache.coins or 0) + coins
 	return true
 end
 
@@ -295,6 +295,12 @@ function MonetizationService._applyProductGrants(player: Player, product: any): 
 				allOk = false
 			end
 		end
+		if product.grants.emoteId then
+			local okEmote = MonetizationService.unlockEmote(player, product.grants.emoteId)
+			if not okEmote then
+				allOk = false
+			end
+		end
 	end
 	if product.category == "emotes" then
 		local okEmote = MonetizationService.unlockEmote(player, product.name)
@@ -310,14 +316,20 @@ function MonetizationService._onPlayerAdded(player: Player)
 	MonetizationService._passCache[player.UserId] = {
 		gamePassOwned = {},
 	}
+	local prime = MonetizationService._inventoryCache[player.UserId]
+	if not prime then
+		prime = {}
+		MonetizationService._inventoryCache[player.UserId] = prime
+	end
+
 	for passKey, passConfig in pairs(MonetizationConfig.GamePasses) do
 		if passConfig.id ~= 0 then
 			local ok, owns = pcall(function()
 				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passConfig.id)
 			end)
-			if ok then
+			if ok and MonetizationService._passCache[player.UserId] then
 				MonetizationService._passCache[player.UserId].gamePassOwned[passKey] = owns == true
-			else
+			elseif MonetizationService._passCache[player.UserId] then
 				MonetizationService._passCache[player.UserId].gamePassOwned[passKey] = false
 			end
 		end
@@ -326,10 +338,8 @@ function MonetizationService._onPlayerAdded(player: Player)
 	-- If the player rejoins with pending grants (purchase completed but
 	-- player left before receipt processed), apply any queued grants here.
 	local pending = MonetizationService._loadInventory(player.UserId)
-	local prime = MonetizationService._inventoryCache[player.UserId]
-	if not prime then
-		prime = {}
-		MonetizationService._inventoryCache[player.UserId] = prime
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return
 	end
 	prime.coins = pending.coins or 0
 
@@ -459,6 +469,10 @@ function MonetizationService.getCoins(player: Player): number
 	-- Cache miss: lazy prime from DataStore
 	local inv = MonetizationService._loadInventory(player.UserId)
 	local coins = inv.coins or 0
+	if not cache then
+		cache = {}
+		MonetizationService._inventoryCache[player.UserId] = cache
+	end
 	cache.coins = coins
 	return coins
 end
@@ -466,9 +480,6 @@ end
 -- Init: wire up event listeners.
 function MonetizationService.init()
 	MonetizationService._initDataStores()
-	for _, player in ipairs(Players:GetPlayers()) do
-		MonetizationService._onPlayerAdded(player)
-	end
 	table.insert(
 		MonetizationService._playerConnections,
 		Players.PlayerAdded:Connect(function(player)
@@ -481,6 +492,11 @@ function MonetizationService.init()
 			MonetizationService._onPlayerRemoving(player)
 		end)
 	)
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			MonetizationService._onPlayerAdded(player)
+		end)
+	end
 	table.insert(
 		MonetizationService._playerConnections,
 		MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, wasPurchased)

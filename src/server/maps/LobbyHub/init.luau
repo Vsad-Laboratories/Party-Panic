@@ -63,7 +63,13 @@ end
 
 -- Load an asset, strip scripts, scale by factor, and place at the given position.
 local function loadAsset(assetId, parent, position, scale)
-	local asset = InsertService:LoadAsset(assetId)
+	local ok, asset = pcall(function()
+		return InsertService:LoadAsset(assetId)
+	end)
+	if not ok or not asset then
+		warn("[LobbyHub] Failed to load dressing asset ID " .. tostring(assetId) .. ": " .. tostring(asset))
+		return nil
+	end
 	for _, descendant in ipairs(asset:GetDescendants()) do
 		if descendant:IsA("Script") or descendant:IsA("LocalScript") or descendant:IsA("ModuleScript") then
 			descendant:Destroy()
