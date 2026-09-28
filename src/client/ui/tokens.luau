@@ -42,13 +42,29 @@ type TextSizes = {
 	caption: number,
 }
 
-local tokens: {
+-- Control sizing scale. One square edge for every nav button, one chip height, one gap
+-- unit, one screen-edge margin: the HUD sizes in px under a single UIScale instead of
+-- per-axis scale fractions, which stretched every control differently on 16:9.
+type Controls = {
+	button: number, -- square nav button edge == the icon rect (1:1 hitbox)
+	buttonGap: number, -- vertical gap between rail buttons
+	edge: number, -- symmetric margin from the screen edge
+	chipHeight: number, -- status / bottom-bar chip height
+	chipGap: number, -- horizontal gap between bar chips
+	chipIcon: number, -- square icon slot inside a chip
+	tipGap: number, -- gap between a button and its tooltip
+}
+
+type Tokens = {
 	palette: Palette,
 	spacing: Spacing,
 	radii: Radii,
 	fonts: Fonts,
 	textSizes: TextSizes,
-} = {
+	controls: Controls,
+}
+
+local tokens: Tokens = {
 	palette = {
 		base = Color3.fromRGB(46, 58, 89),
 		navy = Color3.fromRGB(35, 43, 69),
@@ -82,6 +98,15 @@ local tokens: {
 		pill = 24,
 		body = 20,
 		caption = 14,
+	},
+	controls = {
+		button = 60,
+		buttonGap = 12,
+		edge = 24,
+		chipHeight = 44,
+		chipGap = 12,
+		chipIcon = 24,
+		tipGap = 8,
 	},
 }
 
