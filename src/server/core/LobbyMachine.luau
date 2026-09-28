@@ -87,8 +87,8 @@ function LobbyMachine:_publishState()
 end
 
 function LobbyMachine:start()
-	self:_bindPlayers()
 	self:_createStateEvent()
+	self:_bindPlayers()
 	Placements.placeLobby(self.players)
 	self:_publishState()
 	print("[PartyPanic] lobby machine started — state: Waiting (free-roam)")

@@ -313,6 +313,9 @@ end
 
 -- Player join: prime GamePass cache, load inventory for VIP bonus.
 function MonetizationService._onPlayerAdded(player: Player)
+	if MonetizationService._passCache[player.UserId] ~= nil then
+		return
+	end
 	MonetizationService._passCache[player.UserId] = {
 		gamePassOwned = {},
 	}
@@ -469,6 +472,10 @@ function MonetizationService.getCoins(player: Player): number
 	-- Cache miss: lazy prime from DataStore
 	local inv = MonetizationService._loadInventory(player.UserId)
 	local coins = inv.coins or 0
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return coins
+	end
+	cache = MonetizationService._inventoryCache[player.UserId]
 	if not cache then
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
