@@ -11,6 +11,7 @@
 local DataStoreService = game:GetService("DataStoreService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MonetizationConfig = require(game.ServerScriptService.Server.MonetizationConfig)
 
@@ -21,11 +22,14 @@ local RECEIPT_TTL_DAYS = 30
 
 local MonetizationService = {}
 
--- Session cache: userId -> { gamePassOwned = { passName = bool }, pendingGrants = {} }
+-- Session cache: userId -> { gamePassOwned = { passName = bool }, inventory = { coins = number } }
 MonetizationService._passCache = {}
+MonetizationService._inventoryCache = {}
 MonetizationService._receiptStore = nil
 MonetizationService._inventoryStore = nil
 MonetizationService._playerConnections = {}
+-- _shopPurchaseEvent removed — no client sender exists (router Shop = noop).
+-- Preserved in /tmp/opencode/hud-wiring-main.patch for the future Shop-screen task.
 
 function MonetizationService._initDataStores()
 	if MonetizationService._receiptStore then
@@ -41,10 +45,7 @@ function MonetizationService._initDataStores()
 		MonetizationService._inventoryStore = nil
 	end
 end
-
 -- Idempotent receipt check: returns true if already granted.
--- Uses UpdateAsync for atomic read-check-record (see roblox-datastores skill:
--- "Do not implement it as 'grant, then separately record'" — cross-owner atomicity).
 function MonetizationService._wasReceiptProcessed(purchaseId: string): boolean
 	if MonetizationService._receiptStore == nil then
 		return false
@@ -166,6 +167,8 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 	if not ok then
 		return false
 	end
+	-- Update session cache
+	MonetizationService._inventoryCache[player.UserId] = { coins = coins }
 	return true
 end
 
@@ -199,6 +202,16 @@ function MonetizationService.unlockCosmetic(player: Player, cosmeticId: string):
 		)
 		return false
 	end
+	-- Update session cache for ownedCosmetics
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if not cache then
+		cache = {}
+		MonetizationService._inventoryCache[player.UserId] = cache
+	end
+	if not cache.ownedCosmetics then
+		cache.ownedCosmetics = {}
+	end
+	cache.ownedCosmetics[cosmeticId] = true
 	return true
 end
 
@@ -232,6 +245,16 @@ function MonetizationService.unlockEmote(player: Player, emoteId: string): boole
 		)
 		return false
 	end
+	-- Update session cache for ownedEmotes
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if not cache then
+		cache = {}
+		MonetizationService._inventoryCache[player.UserId] = cache
+	end
+	if not cache.ownedEmotes then
+		cache.ownedEmotes = {}
+	end
+	cache.ownedEmotes[emoteId] = true
 	return true
 end
 
@@ -240,6 +263,13 @@ function MonetizationService.addLockerSlots(player: Player, count: number): bool
 	if not ok then
 		return false
 	end
+	-- Update session cache
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if not cache then
+		cache = {}
+		MonetizationService._inventoryCache[player.UserId] = cache
+	end
+	cache.lockerSlots = count
 	return true
 end
 
@@ -288,7 +318,10 @@ function MonetizationService._onPlayerAdded(player: Player)
 	end
 
 	-- Load inventory so coin grants can apply VIP bonus correctly.
-	-- Inventory is lazily loaded on each grant; this primes the cache.
+	-- Store result in session cache for lazy prime on getCoins.
+	local inv = MonetizationService._loadInventory(player.UserId)
+	MonetizationService._inventoryCache[player.UserId] = { coins = inv.coins or 0 }
+
 	-- If the player rejoins with pending grants (purchase completed but
 	-- player left before receipt processed), apply any queued grants here.
 	local pending = MonetizationService._loadInventory(player.UserId)
@@ -319,6 +352,7 @@ end
 -- Player leaving: clear session cache.
 function MonetizationService._onPlayerRemoving(player: Player)
 	MonetizationService._passCache[player.UserId] = nil
+	MonetizationService._inventoryCache[player.UserId] = nil
 end
 
 -- GamePass purchase finished: invalidate cache for this pass.
@@ -408,18 +442,22 @@ function MonetizationService.hasGamePass(player: Player, passKey: string): boole
 	return cache.gamePassOwned[passKey] == true
 end
 
--- Public: get player's coin count from DataStore.
+-- Public: get player's coin count from session cache (lazy prime on miss).
 function MonetizationService.getCoins(player: Player): number
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if cache and cache.coins ~= nil then
+		return cache.coins
+	end
+	-- Cache miss: lazy prime from DataStore
 	local inv = MonetizationService._loadInventory(player.UserId)
-	return inv.coins or 0
+	local coins = inv.coins or 0
+	MonetizationService._inventoryCache[player.UserId] = { coins = coins }
+	return coins
 end
 
 -- Init: wire up event listeners.
 function MonetizationService.init()
 	MonetizationService._initDataStores()
-	for _, player in ipairs(Players:GetPlayers()) do
-		MonetizationService._onPlayerAdded(player)
-	end
 	table.insert(
 		MonetizationService._playerConnections,
 		Players.PlayerAdded:Connect(function(player)

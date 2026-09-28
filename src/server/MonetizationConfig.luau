@@ -142,22 +142,14 @@ MonetizationConfig.PartyPass = {
 	},
 }
 
--- Currency formatter ladder: K / 10K / 100K / 1M / 10M / 100M / 1B / 10B / 100B / 1T / 10T / 100T.
+-- Currency formatter ladder: K / M / B / T (matches client formatCoins).
 -- Data-only table; formatting logic lives in MonetizationService.formatCurrency.
 MonetizationConfig.CurrencyFormatter = {
 	thresholds = {
 		{ value = 1000, suffix = "K" },
-		{ value = 10000, suffix = "10K" },
-		{ value = 100000, suffix = "100K" },
 		{ value = 1000000, suffix = "M" },
-		{ value = 10000000, suffix = "10M" },
-		{ value = 100000000, suffix = "100M" },
 		{ value = 1000000000, suffix = "B" },
-		{ value = 10000000000, suffix = "10B" },
-		{ value = 100000000000, suffix = "100B" },
 		{ value = 1000000000000, suffix = "T" },
-		{ value = 10000000000000, suffix = "10T" },
-		{ value = 100000000000000, suffix = "100T" },
 	},
 }
 
