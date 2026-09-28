@@ -275,7 +275,7 @@ function MonetizationService.addLockerSlots(player: Player, count: number): bool
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
-	cache.lockerSlots = count
+	cache.lockerSlots = (cache.lockerSlots or 0) + count
 	return true
 end
 
@@ -344,7 +344,7 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	prime.coins = (prime.coins or 0) + (pending and pending.coins or 0)
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
