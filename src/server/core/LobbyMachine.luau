@@ -8,6 +8,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Placements = require(game.ServerScriptService.Server.core.Placements)
+local MonetizationService = require(game.ServerScriptService.Server.MonetizationService)
+local MonetizationConfig = require(game.ServerScriptService.Server.MonetizationConfig)
 
 local LobbyMachine = {}
 LobbyMachine.__index = LobbyMachine
@@ -67,9 +69,13 @@ function LobbyMachine:_publishState()
 	end
 	local playerInfos = {}
 	for _, player in ipairs(self.players) do
+		-- Get coin count from session cache only (no DataStore calls in publish)
+		local coinCount = MonetizationService.getCoins(player)
+
 		table.insert(playerInfos, {
 			userId = player.UserId,
 			name = player.Name,
+			coinCount = coinCount,
 		})
 	end
 	self.stateEvent:FireAllClients({
