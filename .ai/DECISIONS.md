@@ -256,6 +256,23 @@ Populated by `LobbyMachine:_publishState()` using `MonetizationService`.
 
 ---
 
+## DEC-018 — LobbyState Coin Contract: Per-Player, Not Root (supersedes DEC-013)
+
+**Date**: 2026-09-28
+**Status**: ACCEPTED
+**Context**: DEC-013 put `ownedPasses/equipped/level/xp/coinCount` at the payload ROOT. `_publishState` uses ONE `FireAllClients` broadcast — a root value is identical for every client, so "my coins" at root is wrong by construction. Two divergent uncommitted implementations (main tree per-player vs backend tree root) left the tree RED; Operator chose the reconciled direction.
+**Decision**:
+- `PlayerInfo` (the `players[]` row) carries `coinCount: number?` — broadcast stays single-event.
+- Client picks its OWN row by `userId == Players.LocalPlayer.UserId`, renders `entry.coinCount or 0` (honest zero). Root `payload.coinCount` never sent/read.
+- `ownedPasses/equipped/level/xp` DROPPED from the payload: zero schema writers (inventory schema = coins, ownedCosmetics, ownedEmotes, lockerSlots, pendingGrants), zero consumers. Re-add only when a writer + consumer exist (progression system, locker UI).
+- `FireClient`-per-player rejected: extra remote + wiring for zero gain at 12 players.
+- The previous leader's `_loadAssetPacks` stub in the patch created ImageLabels (no InsertService, no script-strip) — wrong shape vs DEC-012; deleted with the patch preserved for the DEC-011/012 Shop task. DEC-011 (`ShopPurchase` remote, server validates → prompt) and DEC-012 stand unchanged.
+**Supersedes**: DEC-013 (payload-shape portion; DEC-013's field semantics deferred per "re-add when writer+consumer exist").
+
+> Numbering note (documentation defect, records NOT modified per append-only rule): DEC-006, DEC-007, DEC-008 each appear twice from the 2026-09-28 session — first occurrence wins; next free number = DEC-019.
+
+---
+
 ## How to Add a Decision
 
 ```markdown
