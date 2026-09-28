@@ -9,17 +9,21 @@
 
 ## 1. The fleet
 
-| Agent | Engine / model | Pane | Worktree | Charter | Scope |
-|---|---|---|---|---|---|
-| **Control** (Supervising) | opencode — this session | `w1:p2` | repo root | this file §6–7 | dispatch, merge authority, docs/Vision, incidents |
-| **backend** | kilo / pinned `kilo/poolside/laguna-s-2.1:free` | `w1:p3` | `~/Dev/PartyPanic-backend` | `docs/agents/BACKEND.md` | `src/server/**` except `maps/`, shared via PR |
-| **client** | kilo / **Operator-managed** (Laguna ↔ Nex) | `w1:p4` | `~/Dev/PartyPanic-client` | `docs/agents/CLIENT.md` | `src/client/**` except `ui/` (GUI layer = ui agent) |
-| **reviewer** | opencode | `w1:p5` | `~/Dev/PartyPanic-reviewer` | `docs/agents/REVIEWER.md` + `docs/REVIEW.md` | verdicts only — never writes `src/` |
-| **map** | kilo / Operator-managed | `w1:p6` | `~/Dev/PartyPanic-map` | `docs/agents/MAP.md` | `src/server/maps/**` |
-| **ui** | kilo / Operator-managed | `w1:p9` | `~/Dev/PartyPanic-ui` | `docs/agents/UI.md` | `src/client/ui/**` + wiring lines in `init.client.luau` |
-| Continue CLI | installed, unused | — | — | acts as backend/client when dispatched | 4th worker on demand |
+> **Canonical org doc: `.ai/AGENT_ROLES.md`** (DEC-001, 2026-09-28). This file keeps the operating doctrine (§2–7); the table below mirrors AGENT_ROLES. Panes are NOT listed — run `herdr agent list` at session start and trust that, not stale IDs.
 
-Branch law: `agent/<role>-<task>` off `main`, one PR per task, gates verbatim, worktrees are real directories (never symlinks).
+| Agent | Tool (DEC-002) | Worktree | Charter | Scope |
+|---|---|---|---|---|
+| **Leader** (Control, this session) | opencode | repo root | this file §6–7 + `.ai/AGENT_ROLES.md` §1 | dispatch, gate verify, docs/Vision, incidents — never edits `src/` |
+| **Orchestrator** | herdr session | repo root | `.ai/AGENT_ROLES.md` §2 | task decomposition, routing, task graph — never writes code |
+| **backend** | kilo / Operator-managed model | `~/Dev/PartyPanic-backend` | `docs/agents/BACKEND.md` | `src/server/**` except `maps/`, + `src/shared/**`, via PR |
+| **client** | kilo / Operator-managed model | `~/Dev/PartyPanic-client` | `docs/agents/CLIENT.md` | `src/client/**` except `ui/` (GUI layer = ui agent) |
+| **map** | opencode | `~/Dev/PartyPanic-map` | `docs/agents/MAP.md` | `src/server/maps/**` |
+| **ui** | opencode | `~/Dev/PartyPanic-ui` | `docs/agents/UI.md` | `src/client/ui/**` + wiring lines in `init.client.luau` |
+| **tester** | opencode | `~/Dev/PartyPanic-test` | `.ai/AGENT_ROLES.md` §4 | gates + playtest reports — never edits `src/` |
+| **researcher / docs** | opencode | repo root | `.ai/AGENT_ROLES.md` §5–6 | `docs/**`, `.ai/**`, findings — never `src/` |
+| **reviewer** | **Google Jules** (jules.google, GitHub PRs) | — | `.ai/AGENT_ROLES.md` §7 | verdicts + fix PRs — local reviewer agent RETIRED (DEC-001; `PartyPanic-reviewer` worktree removed) |
+
+Branch law (**DEC-003**): each worktree owns a long-lived `<role>/main` branch; task PRs use ephemeral `agent/<role>-<slug>` branches; nobody pushes `main` directly; one PR per task, gates verbatim, worktrees are real directories (never symlinks).
 
 ## 2. How a task flows
 
@@ -33,9 +37,9 @@ Control   (charter prompt → dispatch → bounded watch → verdict gate → me
 worker    (charter scope → commit+push PER STEP → gates verbatim → PR → reply evidence)
    │
    ├─► CI on PR   : stylua --check → selene → rojo build
-   ├─► reviewer   : repro reasoning + byte-evidence → APPROVE | REQUEST CHANGES
+   ├─► Jules      : GitHub PR review (checklist docs/REVIEW.md) → APPROVE | REQUEST CHANGES (+ fix PRs)
    ▼
-Control merges ONLY on (APPROVE ∧ CI green) → squash to main → Open Cloud PUBLISH → Sober playtest
+Control verifies (APPROVE ∧ CI green) → Operator approves merge → squash to main → Open Cloud PUBLISH → Sober playtest
    │                                                                                    │
    └──────────────────── Operator notes feed the next dispatch ◄───────────────────────┘
 ```
@@ -52,7 +56,8 @@ Never: merge red · merge without verdict (Operator override allowed once — re
 - **backend** — the fixed frame and round systems: FSM, registry, rotation, state payloads, placement wiring, protocols. Data-first; `config.luau` pattern evangelist.
 - **client** — gameplay client: input, camera, effects, feed consumption. Any bug whose stack lives in `src/client` outside `ui/` is theirs.
 - **ui** — the GUI layer: design tokens, HUD, overlays, UI logic. Owns `src/client/ui/**`. Charter: `docs/agents/UI.md`. UX bar: a 9-year-old knows what to do in 3 seconds.
-- **reviewer** — adversarial verifier. No runtime exists, so it **reasons code paths like a runtime** and byte-compares gate evidence. Checklist: `docs/REVIEW.md` C1–C7. Verdict words are exactly `APPROVE` or `REQUEST CHANGES` + numbered findings.
+- **reviewer** — **Google Jules** (GitHub, no local session — DEC-001). Adversarial verifier: no runtime exists, so review **reasons code paths like a runtime** and byte-compares gate evidence. Checklist: `docs/REVIEW.md` C1–C7. Verdict words are exactly `APPROVE` or `REQUEST CHANGES` + numbered findings.
+- **orchestrator / tester / researcher / docs** — defined in `.ai/AGENT_ROLES.md` §2, §4, §5, §6.
 - **map** — professional map design as code: structure passes (AI) → Operator Sober audit (human) → iterate. Owns `src/server/maps/**`. Charter: `docs/agents/MAP.md`.
 
 ## 5. Laws & gotchas (operational, hard-won)

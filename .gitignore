@@ -11,5 +11,6 @@
 # selene Roblox API std (regenerated locally and in CI via `selene generate-roblox-std`)
 /roblox.yml
 
-# Secrets never committed — Operator credential file lives locally only
-Roblox API Key*
+# Secrets never committed — Operator credential files live in $HOME only
+# ([Kk]ey: gitignore is case-sensitive; the KEY-cased image slipped past once)
+Roblox API [Kk]ey*

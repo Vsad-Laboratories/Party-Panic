@@ -322,6 +322,8 @@ Posts on GitHub PR:
 
 ## Boundary Enforcement (Git-Enforced)
 
+> **DEC-003 (2026-09-28):** each worktree sits on its long-lived `<role>/main` branch (e.g. `backend/main`); `agent/<role>-<slug>` below = the ephemeral PR branch cut from it for one task, then deleted.
+
 | Agent | Worktree | Branch Pattern | Push Target |
 |-------|----------|----------------|-------------|
 | Leader | Main | — (read-only) | — |
