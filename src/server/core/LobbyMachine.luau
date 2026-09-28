@@ -9,7 +9,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Placements = require(game.ServerScriptService.Server.core.Placements)
 local MonetizationService = require(game.ServerScriptService.Server.MonetizationService)
-local MonetizationConfig = require(game.ServerScriptService.Server.MonetizationConfig)
 
 local LobbyMachine = {}
 LobbyMachine.__index = LobbyMachine

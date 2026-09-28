@@ -44,6 +44,7 @@ function MonetizationService._initDataStores()
 		MonetizationService._receiptStore = nil
 		MonetizationService._inventoryStore = nil
 	end
+end
 -- Idempotent receipt check: returns true if already granted.
 function MonetizationService._wasReceiptProcessed(purchaseId: string): boolean
 	if MonetizationService._receiptStore == nil then
@@ -454,7 +455,6 @@ function MonetizationService.getCoins(player: Player): number
 	return coins
 end
 
-
 -- Init: wire up event listeners.
 function MonetizationService.init()
 	MonetizationService._initDataStores()
@@ -478,7 +478,7 @@ function MonetizationService.init()
 			end
 		end)
 	)
-print("[MonetizationService] started — ProcessReceipt + GamePass cache armed")
+	print("[MonetizationService] started — ProcessReceipt + GamePass cache armed")
 end
 
 -- Shutdown: disconnect all listeners.
