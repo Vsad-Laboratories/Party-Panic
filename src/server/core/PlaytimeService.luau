@@ -122,7 +122,10 @@ function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 end
 
 function PlaytimeService._getSessionSeconds(userId: number): number
-	return tick() - (PlaytimeService._sessionStart[userId] or tick())
+	if PlaytimeService._sessionStart[userId] == nil then
+		return 0
+	end
+	return tick() - PlaytimeService._sessionStart[userId]
 end
 
 -- On join: load persisted base. On load ERROR (not missing key), do NOT arm
@@ -151,7 +154,7 @@ end
 -- Chained leave (b): if a save is in-flight, set _pendingLeave and return; the
 -- in-flight save completion will consume _pendingLeave with a final leave-save.
 function PlaytimeService._onPlayerRemoving(player: Player)
-	if PlaytimeService._sessionStart[player.UserId] == nil then
+	if PlaytimeService._sessionStart[player.UserId] == nil and PlaytimeService._sessionDelta[player.UserId] == nil then
 		return
 	end
 	if PlaytimeService._saveInFlight[player.UserId] then
@@ -164,6 +167,9 @@ function PlaytimeService._onPlayerRemoving(player: Player)
 	if saved then
 		PlaytimeService._loadedBase[player.UserId] = nil
 		PlaytimeService._sessionDelta[player.UserId] = nil
+		PlaytimeService._sessionStart[player.UserId] = nil
+	else
+		PlaytimeService._sessionDelta[player.UserId] = delta
 		PlaytimeService._sessionStart[player.UserId] = nil
 	end
 	PlaytimeService._pendingLeave[player.UserId] = nil
@@ -183,7 +189,15 @@ function PlaytimeService._saveAll()
 		return
 	end
 	PlaytimeService._saving = true
+	local userIds = {}
 	for userId in pairs(PlaytimeService._sessionStart) do
+		userIds[userId] = true
+	end
+	for userId in pairs(PlaytimeService._sessionDelta) do
+		userIds[userId] = true
+	end
+
+	for userId in pairs(userIds) do
 		if not PlaytimeService._saveInFlight[userId] then
 			local session = PlaytimeService._getSessionSeconds(userId)
 			local delta = (PlaytimeService._sessionDelta[userId] or 0) + session
@@ -216,6 +230,11 @@ function PlaytimeService._saveAll()
 						end
 					end
 				end
+			else
+				if Players:GetPlayerByUserId(userId) == nil then
+					PlaytimeService._sessionDelta[userId] = delta
+					PlaytimeService._sessionStart[userId] = nil
+				end
 			end
 		end
 	end
@@ -227,10 +246,10 @@ end
 -- lobby leaderboard prop (see task directive). Not speculative.
 -- Total = loadedBase (persisted total) + sessionDelta (unsaved segment) + live session.
 function PlaytimeService.getTotalPlaytime(player: Player): number
-	if PlaytimeService._sessionStart[player.UserId] == nil then
+	if PlaytimeService._sessionStart[player.UserId] == nil and PlaytimeService._sessionDelta[player.UserId] == nil then
 		return 0
 	end
-	local session = tick() - (PlaytimeService._sessionStart[player.UserId] or tick())
+	local session = PlaytimeService._getSessionSeconds(player.UserId)
 	return (PlaytimeService._loadedBase[player.UserId] or 0)
 		+ (PlaytimeService._sessionDelta[player.UserId] or 0)
 		+ session
@@ -238,8 +257,15 @@ end
 
 function PlaytimeService.getTopPlayers(limit: number)
 	local snapshot = {}
+	local userIds = {}
 	for userId in pairs(PlaytimeService._sessionStart) do
-		local session = tick() - (PlaytimeService._sessionStart[userId] or tick())
+		userIds[userId] = true
+	end
+	for userId in pairs(PlaytimeService._sessionDelta) do
+		userIds[userId] = true
+	end
+	for userId in pairs(userIds) do
+		local session = PlaytimeService._getSessionSeconds(userId)
 		local total = (PlaytimeService._loadedBase[userId] or 0)
 			+ (PlaytimeService._sessionDelta[userId] or 0)
 			+ session
