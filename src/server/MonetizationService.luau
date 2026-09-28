@@ -11,7 +11,6 @@
 local DataStoreService = game:GetService("DataStoreService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MonetizationConfig = require(game.ServerScriptService.Server.MonetizationConfig)
 
