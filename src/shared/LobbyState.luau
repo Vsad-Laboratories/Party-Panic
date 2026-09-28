@@ -8,6 +8,7 @@ local RoundContract = require(game.ReplicatedStorage.Shared.RoundContract)
 export type PlayerInfo = {
 	userId: number,
 	name: string,
+	coinCount: number?,
 }
 
 export type LobbyStatePayload = {
