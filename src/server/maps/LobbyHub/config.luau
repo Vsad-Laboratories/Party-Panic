@@ -157,16 +157,24 @@ local LobbyHubConfig = {
 			{ id = 16933634812, position = Vector3.new(0, 1, 115), size = Vector3.new(3, 2, 3), name = "RockNorth1" },
 			{ id = 10355509588, position = Vector3.new(0, 1, -115), size = Vector3.new(4, 2, 4), name = "RockSouth1" },
 		},
-		-- Mythical spawn plate ON the central platform (asset 110144096035671)
-		-- Offset from centerSpawn to avoid overlap.
-		mythicalPlate = {
-			{
-				id = 110144096035671,
-				position = Vector3.new(7, 3.5, 0),
-				size = Vector3.new(6, 1, 6),
-				name = "MythicalPlate",
-			},
+		-- GUIAnimationPack, EmoteSelector, EmotePack (MonetizationConfig assets).
+	-- These are core UI/animation assets loaded to Workspace (not ReplicatedStorage)
+	-- for rendering shop screens and emote selection in the lobby.
+	animationAssets = {
+		{
+			id = 136376766704443,
+			position = Vector3.new(-85, 6, 30),
+			size = Vector3.new(8, 5, 8),
+			name = "GUIAnimationPack",
 		},
+		{ id = 8944416554, position = Vector3.new(10, 6, 30), size = Vector3.new(8, 5, 8), name = "EmoteSelector" },
+		{
+			id = 109991912171331,
+			position = Vector3.new(105, 6, 30),
+			size = Vector3.new(8, 5, 8),
+			name = "EmotePack",
+		},
+	},
 		-- TOP Playtime Leaderboard east of platform (asset 5352156968)
 		-- Contains scripts → stripped on ingest (ASSETS.md rule).
 		leaderboard = {

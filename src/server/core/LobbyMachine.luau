@@ -72,12 +72,38 @@ function LobbyMachine:_publishState()
 			name = player.Name,
 		})
 	end
+
+	-- Include monetization state from MonetizationService
+	local monetizationService = require(game.ServerScriptService.Server.MonetizationService)
+	local coins = 0
+	local level = 1
+	local xp = 0
+	local xpForNext = 100
+	local ownedPasses = {}
+	local equippedCosmetics = {}
+	local equippedEmotes = {}
+
+	if player then
+		coins = monetizationService.getCoins(player)
+		-- TODO: Load player's level, xp, xpForNext, ownedPasses, equipped cosmetics/emotes from DataStore
+		-- These would come from MonetizationService.getPlayerState(player) or similar function
+	end
+
 	self.stateEvent:FireAllClients({
 		state = self.state,
 		countdown = 0,
 		players = playerInfos,
 		roundName = self.currentRoundName,
 		lastResult = self.lastResult,
+		level = level,
+		xp = xp,
+		xpForNext = xpForNext,
+		coinCount = coins,
+		ownedPasses = ownedPasses,
+		equipped = {
+			cosmetics = equippedCosmetics,
+			emotes = equippedEmotes,
+		},
 	})
 end
 

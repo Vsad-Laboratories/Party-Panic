@@ -414,6 +414,35 @@ function MonetizationService.getCoins(player: Player): number
 	return inv.coins or 0
 end
 
+-- ShopPurchase: RemoteEvent handler for shop purchases (Developer Products).
+-- Called when a player completes a product purchase in the client shop.
+function MonetizationService._onShopPurchase(player: Player, productId: number, purchaseId: string): boolean
+	-- 1. Identify product
+	local _, product = MonetizationService._getProductById(productId)
+	if not product then
+		warn("[MonetizationService] unhandled shop purchase product: " .. tostring(productId))
+		return false
+		end
+
+	-- 2. Check idempotency (was this PurchaseId already processed?)
+	if MonetizationService._wasReceiptProcessed(purchaseId) then
+		return true -- already granted
+		end
+
+	-- 3. Grant via DataStore (atomic UpdateAsync)
+	local granted = MonetizationService._applyProductGrants(player, product)
+	if not granted then
+		return false
+		end
+
+	-- 4. Record receipt (durable idempotency record)
+	if not MonetizationService._recordReceipt(purchaseId) then
+		return false
+		end
+
+	return true
+end
+
 -- Init: wire up event listeners.
 function MonetizationService.init()
 	MonetizationService._initDataStores()
@@ -437,6 +466,19 @@ function MonetizationService.init()
 		MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, wasPurchased)
 			if player then
 				MonetizationService._onGamePassPurchaseFinished(player, gamePassId, wasPurchased)
+			end
+		end)
+	)
+	table.insert(
+		MonetizationService._playerConnections,
+		-- ShopPurchase RemoteEvent from client shop UI (synchronizes with ProcessReceipt logic)
+		-- _onShopPurchase is the handler registered in the ReplicatedStorage.RemoteEvent.ShopPurchase
+		Players.PlayerAdded:Connect(function(player)
+			local remote = player:WaitForChild("PlayerGui"):WaitForChild("PartyPanicLobby"):WaitForChild("Shop"):WaitForChild("ShopPurchase")
+			if remote:IsA("RemoteEvent") then
+				remote.OnClientEvent:Connect(function(productId, purchaseId)
+					MonetizationService._onShopPurchase(player, productId, purchaseId)
+				end)
 			end
 		end)
 	)

@@ -16,6 +16,15 @@ export type LobbyStatePayload = {
 	players: { PlayerInfo },
 	roundName: string,
 	lastResult: RoundContract.RoundResult?,
+	level: number?,
+	xp: number?,
+	xpForNext: number?,
+	coinCount: number?,
+	ownedPasses: { [string]: boolean }?,
+	equipped: {
+		cosmetics: { [string]: boolean }?,
+		emotes: { [string]: boolean }?,
+	}?
 }
 
 return {}

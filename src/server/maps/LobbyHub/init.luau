@@ -128,6 +128,13 @@ function LobbyHub.init()
 		end
 	end
 
+	-- Dressing assets (Batch 2, ASSETS.md). Scripts stripped on ingest.
+	for _, category in pairs(config.dressingAssets) do
+		for _, assetDesc in ipairs(category) do
+			loadAsset(assetDesc.id, Workspace, assetDesc.position)
+		end
+	end
+
 	-- Lighting setup (cozy low-poly daylight) and store original values
 	LobbyHub._originalLighting = {
 		Brightness = Lighting.Brightness,

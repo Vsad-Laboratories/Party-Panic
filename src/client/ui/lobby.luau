@@ -20,14 +20,17 @@ local router = require(script.Parent.router)
 local icons = require(script.Parent.icons)
 local sounds = require(script.Parent.sounds)
 
-type PlayerInfo = {
+-- Client monetization config (needs to match server MonetizationConfig.CurrencyFormatter)
+local MonetizationConfig = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MonetizationConfig"))
+
+ type PlayerInfo = {
 	userId: number,
 	name: string,
 }
 
 -- Client view of the server LobbyStatePayload (src/shared/LobbyState.luau).
 -- level/xp/xpForNext/coinCount are optional (backend wires them later); the HUD shows
--- an honest zero state (LV 1, 0 / 100, 0 coins) until real data lands.
+-- an honest zero state (LV 1, 0 / 100, 0, 0 coins) until real data lands.
 type LobbyPayload = {
 	state: string,
 	countdown: number,
@@ -38,6 +41,12 @@ type LobbyPayload = {
 	xp: number?,
 	xpForNext: number?,
 	coinCount: number?,
+	ownedPasses: { [string]: boolean }?,
+	equipped: {
+		cosmetics: { [string]: boolean }?,
+		emotes: { [string]: boolean }?,
+	}?,
+
 }
 
 local MAX_PLAYERS = 12
@@ -133,6 +142,30 @@ local function newLabel(
 	label.TextStrokeTransparency = strokeTransparency or 1
 	newTextSizeConstraint(minTextSize or 14, label)
 	return label
+end
+
+-- Currency formatter (logic, reads config ladder) - matches server CurrencyFormatter (K/M/B/T).
+function Lobby.formatCoins(amount: number): string
+	if amount < 1000 then
+		return tostring(math.floor(amount))
+	end
+	-- Ladders from server MonetizationConfig.CurrencyFormatter.thresholds:
+	-- 1000:K, 10000:10K, 100000:100K, 1000000:M, 10000000:10M, 100000000:100M,
+	-- 1000000000:B, 10000000000:10B, 100000000000:100B, 1000000000000:T, etc.
+	for i = #MonetizationConfig.CurrencyFormatter.thresholds, 1, -1 do
+		local tier = MonetizationConfig.CurrencyFormatter.thresholds[i]
+		if amount >= tier.value then
+			local scaled = amount / tier.value
+			if scaled >= 100 then
+				return tostring(math.floor(scaled)) .. tier.suffix
+			elseif scaled >= 10 then
+				return string.format("%.1f", scaled):gsub("%.0$", "") .. tier.suffix
+			else
+				return string.format("%.2f", scaled):gsub("%.00$", "") .. tier.suffix
+			end
+		end
+	end
+	return tostring(amount)
 end
 
 -- Icon button factory: 1:1 square ImageButton, ScaleType Fit, hover tint + hover sound,
