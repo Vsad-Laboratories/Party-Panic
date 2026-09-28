@@ -89,6 +89,12 @@ end
 function LobbyMachine:start()
 	self:_createStateEvent()
 	self:_bindPlayers()
+	table.insert(
+		self._connections,
+		MonetizationService.CoinsUpdated:Connect(function(_player, _coins)
+			self:_publishState()
+		end)
+	)
 	Placements.placeLobby(self.players)
 	self:_publishState()
 	print("[PartyPanic] lobby machine started — state: Waiting (free-roam)")
