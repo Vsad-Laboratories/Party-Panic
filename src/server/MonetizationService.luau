@@ -44,6 +44,8 @@ function MonetizationService._initDataStores()
 		MonetizationService._inventoryStore = nil
 	end
 end
+-- Uses UpdateAsync for atomic read-check-record (see roblox-datastores skill:
+-- "Do not implement it as grant, then separately record" — cross-owner atomicity).
 -- Idempotent receipt check: returns true if already granted.
 function MonetizationService._wasReceiptProcessed(purchaseId: string): boolean
 	if MonetizationService._receiptStore == nil then
@@ -167,7 +169,12 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 		return false
 	end
 	-- Update session cache
-	MonetizationService._inventoryCache[player.UserId] = { coins = coins }
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if not cache then
+		cache = {}
+		MonetizationService._inventoryCache[player.UserId] = cache
+	end
+	cache.coins = coins
 	return true
 end
 
@@ -316,14 +323,16 @@ function MonetizationService._onPlayerAdded(player: Player)
 		end
 	end
 
-	-- Load inventory so coin grants can apply VIP bonus correctly.
-	-- Store result in session cache for lazy prime on getCoins.
-	local inv = MonetizationService._loadInventory(player.UserId)
-	MonetizationService._inventoryCache[player.UserId] = { coins = inv.coins or 0 }
-
 	-- If the player rejoins with pending grants (purchase completed but
 	-- player left before receipt processed), apply any queued grants here.
 	local pending = MonetizationService._loadInventory(player.UserId)
+	local prime = MonetizationService._inventoryCache[player.UserId]
+	if not prime then
+		prime = {}
+		MonetizationService._inventoryCache[player.UserId] = prime
+	end
+	prime.coins = pending.coins or 0
+
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
 			if grant.type == "coins" then
@@ -450,13 +459,16 @@ function MonetizationService.getCoins(player: Player): number
 	-- Cache miss: lazy prime from DataStore
 	local inv = MonetizationService._loadInventory(player.UserId)
 	local coins = inv.coins or 0
-	MonetizationService._inventoryCache[player.UserId] = { coins = coins }
+	cache.coins = coins
 	return coins
 end
 
 -- Init: wire up event listeners.
 function MonetizationService.init()
 	MonetizationService._initDataStores()
+	for _, player in ipairs(Players:GetPlayers()) do
+		MonetizationService._onPlayerAdded(player)
+	end
 	table.insert(
 		MonetizationService._playerConnections,
 		Players.PlayerAdded:Connect(function(player)
