@@ -23,11 +23,13 @@ local sounds = require(script.Parent.sounds)
 type PlayerInfo = {
 	userId: number,
 	name: string,
+	coinCount: number?,
 }
 
 -- Client view of the server LobbyStatePayload (src/shared/LobbyState.luau).
--- level/xp/xpForNext/coinCount are optional (backend wires them later); the HUD shows
--- an honest zero state (LV 1, 0 / 100, 0 coins) until real data lands.
+-- level/xp/xpForNext are optional (backend wires them later); the HUD shows an honest
+-- zero state (LV 1, 0 / 100) until real data lands. Coins are NOT here: the state sync
+-- is one FireAllClients broadcast, so coins ride on our own players[] entry.
 type LobbyPayload = {
 	state: string,
 	countdown: number,
@@ -37,7 +39,6 @@ type LobbyPayload = {
 	level: number?,
 	xp: number?,
 	xpForNext: number?,
-	coinCount: number?,
 }
 
 local MAX_PLAYERS = 12
@@ -537,9 +538,17 @@ function Lobby._onPayload(self: Lobby, payload: LobbyPayload)
 		self._levelFill.Size = UDim2.fromScale(math.clamp(pct, 0, 1), 1)
 		self._progressLabel.Text = tostring(payload.xp) .. " / " .. tostring(payload.xpForNext)
 	end
-	if payload.coinCount then
-		self._coinCountLabel.Text = tostring(payload.coinCount)
+	-- Coins are per player: the broadcast is identical for everyone, so read our OWN
+	-- entry out of players[] (root coinCount is never sent). Honest zero while absent.
+	local localUserId = Players.LocalPlayer.UserId
+	local coins: number = 0
+	for _, entry in payload.players do
+		if entry.userId == localUserId then
+			coins = entry.coinCount or 0
+			break
+		end
 	end
+	self._coinCountLabel.Text = tostring(coins)
 end
 
 -- Tooltip lifecycle (GOAL b): show after a 0.12s delay; hide instantly on leave. PC
