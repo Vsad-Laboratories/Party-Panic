@@ -96,10 +96,14 @@ function LobbyHub.init()
 	-- Ground disc (top y=1) and central platform (top y=4)
 	createDisc(config.groundDisc)
 	createDisc(config.platform)
+	-- DIAG: TEMPORARY breadcrumb — revert with the boot trap; pinpoints where init dies
+	warn("[DIAG] LobbyHub.init: ground disc + platform")
 
 	-- Oval stage: wall and top rim only (decorRing and ringEdge removed)
 	createEllipseBand(config.perimeterWall)
 	createEllipseBand(config.topRim)
+	-- DIAG: breadcrumb — ellipse bands done
+	warn("[DIAG] LobbyHub.init: perimeter wall + top rim")
 
 	-- ONE center SpawnLocation: the ONLY active spawn point.
 	-- Deterministic spawn at platform center where mythical plate sits.
@@ -118,6 +122,8 @@ function LobbyHub.init()
 	centerSpawn.ReceiveShadow = true
 	centerSpawn.Parent = Workspace
 	table.insert(LobbyHub._parts, centerSpawn)
+	-- DIAG: breadcrumb — center spawn created
+	warn("[DIAG] LobbyHub.init: center spawn")
 
 	-- 12 perimeter pads: PLAIN ANCHORED PARTS (NOT SpawnLocations).
 	-- Round-placement contract data for Placements; must NOT be where
@@ -140,6 +146,8 @@ function LobbyHub.init()
 		pad.Parent = Workspace
 		table.insert(LobbyHub._parts, pad)
 	end
+	-- DIAG: breadcrumb — perimeter pads done
+	warn("[DIAG] LobbyHub.init: perimeter pads")
 
 	-- Dressing assets (Batch 2, ASSETS.md). Scripts stripped on ingest.
 	-- Stalls scaled 1.2x; mythical plate at platform center.
@@ -152,6 +160,8 @@ function LobbyHub.init()
 			loadAsset(assetDesc.id, Workspace, assetDesc.position, scale)
 		end
 	end
+	-- DIAG: breadcrumb — dressing assets attempted (per-asset failures already warn)
+	warn("[DIAG] LobbyHub.init: dressing assets")
 
 	-- Lighting overhaul: warm afternoon with sharp shadows and atmospheric haze
 	LobbyHub._originalLighting = {
@@ -190,6 +200,8 @@ function LobbyHub.init()
 	Atmosphere.Color = Color3.fromRGB(200, 190, 170)
 	Atmosphere.Glare = 0.3
 	Atmosphere.Haze = 0.3
+	-- DIAG: breadcrumb — init finished, all stages survived
+	warn("[DIAG] LobbyHub.init: init finished")
 end
 
 function LobbyHub.cleanup()
