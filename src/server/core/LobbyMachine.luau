@@ -87,6 +87,9 @@ function LobbyMachine:_publishState()
 end
 
 function LobbyMachine:start()
+	if #self._connections > 0 then
+		return
+	end
 	self:_createStateEvent()
 	self:_bindPlayers()
 	Placements.placeLobby(self.players)
