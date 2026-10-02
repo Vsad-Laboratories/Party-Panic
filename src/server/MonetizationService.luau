@@ -525,7 +525,6 @@ function MonetizationService.init()
 	print("[MonetizationService] started — ProcessReceipt + GamePass cache armed")
 end
 
-
 -- Shutdown: disconnect all listeners.
 function MonetizationService.shutdown()
 	for _, conn in ipairs(MonetizationService._playerConnections) do
