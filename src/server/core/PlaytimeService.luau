@@ -32,6 +32,8 @@ PlaytimeService._pendingLeave = {}
 PlaytimeService._tickAccumulator = 0
 PlaytimeService._heartbeatConn = nil
 PlaytimeService._saving = false
+PlaytimeService._connections = {}
+PlaytimeService._loadInFlight = {}
 
 function PlaytimeService._initDataStore()
 	if PlaytimeService._dataStore then
@@ -133,10 +135,12 @@ end
 -- _loadedBase folds each saved delta (equals persisted total at rest); _sessionDelta
 -- accumulates this session's unsaved playtime (reset after successful periodic save).
 function PlaytimeService._onPlayerAdded(player: Player)
-	if PlaytimeService._sessionStart[player.UserId] ~= nil then
+	if PlaytimeService._sessionStart[player.UserId] ~= nil or PlaytimeService._loadInFlight[player.UserId] then
 		return
 	end
+	PlaytimeService._loadInFlight[player.UserId] = true
 	local ok, loaded = PlaytimeService._loadPlayer(player.UserId)
+	PlaytimeService._loadInFlight[player.UserId] = nil
 	if not ok then
 		warn("[PlaytimeService] player " .. player.Name .. " skipped (load error); persistence disarmed for session")
 		return
@@ -286,12 +290,18 @@ end
 
 function PlaytimeService.start()
 	PlaytimeService._initDataStore()
-	Players.PlayerAdded:Connect(function(player)
-		PlaytimeService._onPlayerAdded(player)
-	end)
-	Players.PlayerRemoving:Connect(function(player)
-		PlaytimeService._onPlayerRemoving(player)
-	end)
+	table.insert(
+		PlaytimeService._connections,
+		Players.PlayerAdded:Connect(function(player)
+			PlaytimeService._onPlayerAdded(player)
+		end)
+	)
+	table.insert(
+		PlaytimeService._connections,
+		Players.PlayerRemoving:Connect(function(player)
+			PlaytimeService._onPlayerRemoving(player)
+		end)
+	)
 	for _, player in ipairs(Players:GetPlayers()) do
 		task.spawn(function()
 			PlaytimeService._onPlayerAdded(player)
@@ -305,6 +315,10 @@ function PlaytimeService.start()
 end
 
 function PlaytimeService.shutdown()
+	for _, conn in ipairs(PlaytimeService._connections) do
+		conn:Disconnect()
+	end
+	PlaytimeService._connections = {}
 	if PlaytimeService._heartbeatConn then
 		PlaytimeService._heartbeatConn:Disconnect()
 		PlaytimeService._heartbeatConn = nil
