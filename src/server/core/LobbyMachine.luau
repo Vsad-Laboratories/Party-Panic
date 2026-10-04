@@ -26,16 +26,20 @@ end
 
 function LobbyMachine:_bindPlayers()
 	for _, player in ipairs(Players:GetPlayers()) do
-		table.insert(self.players, player)
-		Placements.placePlayer(player)
+		if not table.find(self.players, player) then
+			table.insert(self.players, player)
+			Placements.placePlayer(player)
+		end
 	end
 	table.insert(
 		self._connections,
 		Players.PlayerAdded:Connect(function(player)
-			table.insert(self.players, player)
-			print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
-			Placements.placePlayer(player)
-			self:_publishState()
+			if not table.find(self.players, player) then
+				table.insert(self.players, player)
+				print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
+				Placements.placePlayer(player)
+				self:_publishState()
+			end
 		end)
 	)
 	table.insert(
