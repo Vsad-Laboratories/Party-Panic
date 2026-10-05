@@ -136,12 +136,15 @@ function PlaytimeService._onPlayerAdded(player: Player)
 	if PlaytimeService._sessionStart[player.UserId] ~= nil then
 		return
 	end
+	PlaytimeService._sessionStart[player.UserId] = tick()
 	local ok, loaded = PlaytimeService._loadPlayer(player.UserId)
 	if not ok then
+		PlaytimeService._sessionStart[player.UserId] = nil
 		warn("[PlaytimeService] player " .. player.Name .. " skipped (load error); persistence disarmed for session")
 		return
 	end
 	if Players:GetPlayerByUserId(player.UserId) == nil then
+		PlaytimeService._sessionStart[player.UserId] = nil
 		return
 	end
 	PlaytimeService._loadedBase[player.UserId] = loaded or 0
