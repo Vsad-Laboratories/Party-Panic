@@ -558,6 +558,10 @@ function Lobby._connect(self: Lobby)
 end
 
 function Lobby._onPayload(self: Lobby, payload: LobbyPayload)
+	if not payload or typeof(payload) ~= "table" or typeof(payload.players) ~= "table" then
+		return
+	end
+
 	self._playerCountLabel.Text = #payload.players .. " / " .. MAX_PLAYERS
 
 	if payload.level then
