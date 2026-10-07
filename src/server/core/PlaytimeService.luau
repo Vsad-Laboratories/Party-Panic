@@ -227,6 +227,9 @@ function PlaytimeService._saveAll()
 							PlaytimeService._loadedBase[userId] = nil
 							PlaytimeService._sessionDelta[userId] = nil
 							PlaytimeService._sessionStart[userId] = nil
+						else
+							PlaytimeService._sessionDelta[userId] = finalDelta
+							PlaytimeService._sessionStart[userId] = nil
 						end
 					end
 				end
@@ -246,6 +249,9 @@ end
 -- lobby leaderboard prop (see task directive). Not speculative.
 -- Total = loadedBase (persisted total) + sessionDelta (unsaved segment) + live session.
 function PlaytimeService.getTotalPlaytime(player: Player): number
+	if not player or not player.UserId then
+		return 0
+	end
 	if PlaytimeService._sessionStart[player.UserId] == nil and PlaytimeService._sessionDelta[player.UserId] == nil then
 		return 0
 	end
