@@ -143,12 +143,9 @@ function LobbyHub.init()
 
 	-- Dressing assets (Batch 2, ASSETS.md). Scripts stripped on ingest.
 	-- Stalls scaled 1.2x; mythical plate at platform center.
-	for _, category in pairs(config.dressingAssets) do
+	for categoryName, category in pairs(config.dressingAssets) do
 		for _, assetDesc in ipairs(category) do
-			local scale = 1.2
-			if assetDesc.name == "Leaderboard" then
-				scale = 1.0
-			end
+			local scale = if categoryName == "stalls" then 1.2 else 1.0
 			loadAsset(assetDesc.id, Workspace, assetDesc.position, scale)
 		end
 	end
