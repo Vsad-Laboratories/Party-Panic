@@ -8,35 +8,29 @@
 -- live playtests (Operator: "hover and click pop sounds too quiet"), while keeping
 -- the soft pop character and the registered asset IDs (docs/ASSETS.md) unchanged.
 
+local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 
 local HOVER_ASSET = "rbxassetid://127105730240202"
 local CLICK_ASSET = "rbxassetid://138567614125924"
 local VOLUME = 0.45
 
-local function newSound(name: string, asset: string): Sound
+local function play(asset: string, name: string): ()
 	local sound = Instance.new("Sound")
 	sound.Name = name
 	sound.SoundId = asset
 	sound.Volume = VOLUME
 	sound.Parent = SoundService
-	return sound
-end
-
-local hover = newSound("UIHover", HOVER_ASSET)
-local click = newSound("UIClick", CLICK_ASSET)
-
-local function play(sound: Sound): ()
-	sound.TimePosition = 0
 	sound:Play()
+	Debris:AddItem(sound, 5)
 end
 
 local module = {
 	playHover = function(): ()
-		play(hover)
+		play(HOVER_ASSET, "UIHover")
 	end,
 	playClick = function(): ()
-		play(click)
+		play(CLICK_ASSET, "UIClick")
 	end,
 }
 

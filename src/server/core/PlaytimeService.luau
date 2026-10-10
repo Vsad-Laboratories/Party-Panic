@@ -310,6 +310,7 @@ function PlaytimeService.shutdown()
 		PlaytimeService._heartbeatConn = nil
 	end
 	PlaytimeService._saving = false
+	PlaytimeService._saveAll()
 	for _, player in ipairs(Players:GetPlayers()) do
 		PlaytimeService._onPlayerRemoving(player)
 	end
