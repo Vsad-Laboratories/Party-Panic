@@ -162,15 +162,20 @@ function PlaytimeService._onPlayerRemoving(player: Player)
 		return
 	end
 	local sessionSeconds = PlaytimeService._getSessionSeconds(player.UserId)
+	PlaytimeService._sessionStart[player.UserId] = nil
 	local delta = (PlaytimeService._sessionDelta[player.UserId] or 0) + sessionSeconds
 	local saved = PlaytimeService._savePlayer(player.UserId, delta)
 	if saved then
-		PlaytimeService._loadedBase[player.UserId] = nil
-		PlaytimeService._sessionDelta[player.UserId] = nil
-		PlaytimeService._sessionStart[player.UserId] = nil
+		if Players:GetPlayerByUserId(player.UserId) == nil then
+			PlaytimeService._loadedBase[player.UserId] = nil
+			PlaytimeService._sessionDelta[player.UserId] = nil
+			PlaytimeService._sessionStart[player.UserId] = nil
+		end
 	else
-		PlaytimeService._sessionDelta[player.UserId] = delta
-		PlaytimeService._sessionStart[player.UserId] = nil
+		if Players:GetPlayerByUserId(player.UserId) == nil then
+			PlaytimeService._sessionDelta[player.UserId] = delta
+			PlaytimeService._sessionStart[player.UserId] = nil
+		end
 	end
 	PlaytimeService._pendingLeave[player.UserId] = nil
 end

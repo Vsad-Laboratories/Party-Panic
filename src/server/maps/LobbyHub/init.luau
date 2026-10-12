@@ -82,10 +82,8 @@ local function loadAsset(assetId, parent, position, scale)
 			end
 		end
 	end
-	if asset.PrimaryPart then
-		asset:SetPrimaryPartCFrame(CFrame.new(position))
-	else
-		asset:MoveTo(position)
+	if asset:IsA("Model") then
+		asset:PivotTo(CFrame.new(position))
 	end
 	asset.Parent = parent
 	table.insert(LobbyHub._assets, asset)

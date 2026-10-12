@@ -32,6 +32,9 @@ function LobbyMachine:_bindPlayers()
 	table.insert(
 		self._connections,
 		Players.PlayerAdded:Connect(function(player)
+			if table.find(self.players, player) then
+				return
+			end
 			table.insert(self.players, player)
 			print("[PartyPanic] player joined: " .. player.Name .. " (total: " .. #self.players .. ")")
 			Placements.placePlayer(player)
