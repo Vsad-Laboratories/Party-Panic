@@ -29,6 +29,7 @@ PlaytimeService._sessionDelta = {}
 PlaytimeService._sessionStart = {}
 PlaytimeService._saveInFlight = {}
 PlaytimeService._pendingLeave = {}
+PlaytimeService._loadingPlayer = {}
 PlaytimeService._tickAccumulator = 0
 PlaytimeService._heartbeatConn = nil
 PlaytimeService._saving = false
@@ -133,10 +134,14 @@ end
 -- _loadedBase folds each saved delta (equals persisted total at rest); _sessionDelta
 -- accumulates this session's unsaved playtime (reset after successful periodic save).
 function PlaytimeService._onPlayerAdded(player: Player)
-	if PlaytimeService._sessionStart[player.UserId] ~= nil then
+	if PlaytimeService._sessionStart[player.UserId] ~= nil or PlaytimeService._loadingPlayer[player.UserId] then
 		return
 	end
+	PlaytimeService._loadingPlayer[player.UserId] = true
+
 	local ok, loaded = PlaytimeService._loadPlayer(player.UserId)
+	PlaytimeService._loadingPlayer[player.UserId] = nil
+
 	if not ok then
 		warn("[PlaytimeService] player " .. player.Name .. " skipped (load error); persistence disarmed for session")
 		return
