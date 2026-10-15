@@ -276,7 +276,7 @@ function MonetizationService.addLockerSlots(player: Player, count: number): bool
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
-	cache.lockerSlots = count
+	cache.lockerSlots = (cache.lockerSlots or 0) + count
 	return true
 end
 
@@ -345,7 +345,7 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	prime.coins = (pending and pending.coins or 0) + (prime.coins or 0)
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
@@ -534,15 +534,16 @@ MonetizationService._shopPurchaseEvent.OnServerEvent:Connect(function(player, re
 end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
+-- ShopPurchase: server-authoritative purchase prompt handler.
 -- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
+-- Server validates item config and prompts purchase via MarketplaceService.
+-- Server NEVER grants currency or items directly on client request.
 function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
-	if not request then
+	if typeof(request) ~= "table" then
 		return false
 	end
 
-	-- Developer Product purchase
+	-- Developer Product prompt request
 	if request.productKey then
 		local product = MonetizationConfig.Products[request.productKey]
 		if not product or product.id == 0 then
@@ -550,26 +551,17 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 			return false
 		end
 
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
+		local ok, err = pcall(function()
+			MarketplaceService:PromptProductPurchase(player, product.id)
+		end)
+		if not ok then
+			warn("[MonetizationService] failed to prompt product purchase: " .. tostring(err))
 			return false
 		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
 		return true
 	end
 
-	-- GamePass purchase
+	-- GamePass prompt request
 	if request.gamePassKey then
 		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
 		if not pass or pass.id == 0 then
@@ -577,27 +569,16 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 			return false
 		end
 
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
+		local ok, err = pcall(function()
+			MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		end)
+		if not ok then
+			warn("[MonetizationService] failed to prompt gamepass purchase: " .. tostring(err))
 			return false
 		end
-
 		return true
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
 	return false
 end
