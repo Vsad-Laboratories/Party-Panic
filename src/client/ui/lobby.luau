@@ -558,7 +558,12 @@ function Lobby._connect(self: Lobby)
 end
 
 function Lobby._onPayload(self: Lobby, payload: LobbyPayload)
-	self._playerCountLabel.Text = #payload.players .. " / " .. MAX_PLAYERS
+	if typeof(payload) ~= "table" then
+		return
+	end
+
+	local playersList = if typeof(payload.players) == "table" then payload.players else {}
+	self._playerCountLabel.Text = #playersList .. " / " .. MAX_PLAYERS
 
 	if payload.level then
 		self._levelNumberLabel.Text = "LV " .. tostring(payload.level)
@@ -573,8 +578,8 @@ function Lobby._onPayload(self: Lobby, payload: LobbyPayload)
 	-- entry out of players[] (root coinCount is never sent). Honest zero while absent.
 	local localUserId = Players.LocalPlayer.UserId
 	local coins: number = 0
-	for _, entry in payload.players do
-		if entry.userId == localUserId then
+	for _, entry in playersList do
+		if typeof(entry) == "table" and entry.userId == localUserId then
 			coins = entry.coinCount or 0
 			break
 		end
