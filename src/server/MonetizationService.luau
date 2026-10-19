@@ -534,10 +534,9 @@ MonetizationService._shopPurchaseEvent.OnServerEvent:Connect(function(player, re
 end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
--- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
+-- Client sends { productKey = "..." } or { gamePassKey = "..." }.
+-- Server validates product/pass key and prompts purchase via MarketplaceService.
 function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
 	if not request then
 		return false
 	end
@@ -550,22 +549,7 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 			return false
 		end
 
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
+		MarketplaceService:PromptProductPurchase(player, product.id)
 		return true
 	end
 
@@ -577,27 +561,14 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 			return false
 		end
 
-		-- Check if player already owns it
 		if MonetizationService.hasGamePass(player, request.gamePassKey) then
 			return true -- already owned
 		end
 
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
 		return true
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
 	return false
 end
