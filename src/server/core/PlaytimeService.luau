@@ -313,6 +313,25 @@ function PlaytimeService.shutdown()
 	for _, player in ipairs(Players:GetPlayers()) do
 		PlaytimeService._onPlayerRemoving(player)
 	end
+	-- Wait for any in-flight DataStore saves or pending leaves to complete
+	local start = tick()
+	while tick() - start < 5 do
+		local busy = false
+		for _ in pairs(PlaytimeService._saveInFlight) do
+			busy = true
+			break
+		end
+		if not busy then
+			for _ in pairs(PlaytimeService._pendingLeave) do
+				busy = true
+				break
+			end
+		end
+		if not busy then
+			break
+		end
+		task.wait(0.1)
+	end
 end
 
 return PlaytimeService
