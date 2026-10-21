@@ -246,7 +246,10 @@ end
 -- lobby leaderboard prop (see task directive). Not speculative.
 -- Total = loadedBase (persisted total) + sessionDelta (unsaved segment) + live session.
 function PlaytimeService.getTotalPlaytime(player: Player): number
-	if PlaytimeService._sessionStart[player.UserId] == nil and PlaytimeService._sessionDelta[player.UserId] == nil then
+	if
+		not player
+		or (PlaytimeService._sessionStart[player.UserId] == nil and PlaytimeService._sessionDelta[player.UserId] == nil)
+	then
 		return 0
 	end
 	local session = PlaytimeService._getSessionSeconds(player.UserId)

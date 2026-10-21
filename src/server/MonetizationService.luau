@@ -130,6 +130,9 @@ end
 
 -- Apply VIP bonus to a coin award, capped at VIPBonusCap (0.5 => max +100% total).
 function MonetizationService._applyVipBonus(player: Player, baseCoins: number): number
+	if not player then
+		return baseCoins
+	end
 	local cache = MonetizationService._passCache[player.UserId]
 	if not cache then
 		return baseCoins
@@ -164,6 +167,9 @@ end
 -- Grant functions -----------------------------------------------------------
 
 function MonetizationService.grantCoins(player: Player, amount: number, _source: string)
+	if not player then
+		return false
+	end
 	local coins = MonetizationService._applyVipBonus(player, amount)
 	local ok = MonetizationService._saveInventoryField(player.UserId, "coins", coins)
 	if not ok then
@@ -180,7 +186,7 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 end
 
 function MonetizationService.unlockCosmetic(player: Player, cosmeticId: string): boolean
-	if MonetizationService._inventoryStore == nil then
+	if not player or MonetizationService._inventoryStore == nil then
 		return false
 	end
 	local key = "inv_" .. player.UserId
@@ -223,7 +229,7 @@ function MonetizationService.unlockCosmetic(player: Player, cosmeticId: string):
 end
 
 function MonetizationService.unlockEmote(player: Player, emoteId: string): boolean
-	if MonetizationService._inventoryStore == nil then
+	if not player or MonetizationService._inventoryStore == nil then
 		return false
 	end
 	local key = "inv_" .. player.UserId
@@ -266,6 +272,9 @@ function MonetizationService.unlockEmote(player: Player, emoteId: string): boole
 end
 
 function MonetizationService.addLockerSlots(player: Player, count: number): boolean
+	if not player then
+		return false
+	end
 	local ok = MonetizationService._saveInventoryField(player.UserId, "lockerSlots", count)
 	if not ok then
 		return false
@@ -314,7 +323,7 @@ end
 
 -- Player join: prime GamePass cache, load inventory for VIP bonus.
 function MonetizationService._onPlayerAdded(player: Player)
-	if MonetizationService._passCache[player.UserId] ~= nil then
+	if not player or MonetizationService._passCache[player.UserId] ~= nil then
 		return
 	end
 	MonetizationService._passCache[player.UserId] = {
@@ -345,7 +354,8 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	-- Merge loaded coins with any coins granted during the async load yield
+	prime.coins = (pending.coins or 0) + (prime.coins or 0)
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
@@ -457,6 +467,9 @@ end
 
 -- Public: check if player owns a GamePass (session-cached).
 function MonetizationService.hasGamePass(player: Player, passKey: string): boolean
+	if not player then
+		return false
+	end
 	local cache = MonetizationService._passCache[player.UserId]
 	if not cache or not cache.gamePassOwned then
 		return false
@@ -464,25 +477,16 @@ function MonetizationService.hasGamePass(player: Player, passKey: string): boole
 	return cache.gamePassOwned[passKey] == true
 end
 
--- Public: get player's coin count from session cache (lazy prime on miss).
+-- Public: get player's coin count from session cache (non-blocking).
 function MonetizationService.getCoins(player: Player): number
+	if not player then
+		return 0
+	end
 	local cache = MonetizationService._inventoryCache[player.UserId]
 	if cache and cache.coins ~= nil then
 		return cache.coins
 	end
-	-- Cache miss: lazy prime from DataStore
-	local inv = MonetizationService._loadInventory(player.UserId)
-	local coins = inv.coins or 0
-	if Players:GetPlayerByUserId(player.UserId) == nil then
-		return coins
-	end
-	cache = MonetizationService._inventoryCache[player.UserId]
-	if not cache then
-		cache = {}
-		MonetizationService._inventoryCache[player.UserId] = cache
-	end
-	cache.coins = coins
-	return coins
+	return 0
 end
 
 -- Init: wire up event listeners.
@@ -535,71 +539,37 @@ end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
 -- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
+-- Server prompts purchase via MarketplaceService. Grants occur ONLY via ProcessReceipt or GamePass callbacks.
 function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
-	if not request then
-		return false
+	if typeof(request) ~= "table" or player == nil then
+		return
 	end
 
-	-- Developer Product purchase
 	if request.productKey then
 		local product = MonetizationConfig.Products[request.productKey]
 		if not product or product.id == 0 then
 			warn("[MonetizationService] invalid product key: " .. tostring(request.productKey))
-			return false
+			return
 		end
-
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
-		return true
+		pcall(function()
+			MarketplaceService:PromptProductPurchase(player, product.id)
+		end)
+		return
 	end
 
-	-- GamePass purchase
 	if request.gamePassKey then
 		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
 		if not pass or pass.id == 0 then
 			warn("[MonetizationService] invalid gamepass key: " .. tostring(request.gamePassKey))
-			return false
+			return
 		end
-
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
-		return true
+		pcall(function()
+			MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		end)
+		return
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
-	return false
 end
 
 -- Shutdown: disconnect all listeners.
