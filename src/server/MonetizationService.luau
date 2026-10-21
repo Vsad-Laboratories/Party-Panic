@@ -169,13 +169,15 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 	if not ok then
 		return false
 	end
-	-- Update session cache
+	-- Update session cache (ensure base coins loaded if cache miss)
 	local cache = MonetizationService._inventoryCache[player.UserId]
-	if not cache then
-		cache = {}
-		MonetizationService._inventoryCache[player.UserId] = cache
+	if not cache or cache.coins == nil then
+		MonetizationService.getCoins(player)
+		cache = MonetizationService._inventoryCache[player.UserId]
 	end
-	cache.coins = (cache.coins or 0) + coins
+	if cache then
+		cache.coins = (cache.coins or 0) + coins
+	end
 	return true
 end
 
@@ -345,7 +347,7 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	prime.coins = prime.coins or pending.coins or 0
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
@@ -388,6 +390,9 @@ function MonetizationService._onGamePassPurchaseFinished(player: Player, gamePas
 		if passConfig.id == gamePassId then
 			if not MonetizationService._passCache[player.UserId] then
 				MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
+			end
+			if not MonetizationService._passCache[player.UserId].gamePassOwned then
+				MonetizationService._passCache[player.UserId].gamePassOwned = {}
 			end
 			MonetizationService._passCache[player.UserId].gamePassOwned[passKey] = true
 		end
@@ -534,71 +539,11 @@ MonetizationService._shopPurchaseEvent.OnServerEvent:Connect(function(player, re
 end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
--- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
-function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
-	if not request then
-		return false
-	end
-
-	-- Developer Product purchase
-	if request.productKey then
-		local product = MonetizationConfig.Products[request.productKey]
-		if not product or product.id == 0 then
-			warn("[MonetizationService] invalid product key: " .. tostring(request.productKey))
-			return false
-		end
-
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
-		return true
-	end
-
-	-- GamePass purchase
-	if request.gamePassKey then
-		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
-		if not pass or pass.id == 0 then
-			warn("[MonetizationService] invalid gamepass key: " .. tostring(request.gamePassKey))
-			return false
-		end
-
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
-		return true
-	end
-
-	-- Unknown request shape
-	warn("[MonetizationService] unknown shop request shape")
+-- Server authority security rule: Purchases must be processed via MarketplaceService
+-- prompts and ProcessReceipt / UserOwnsGamePassAsync.
+-- Direct client remote triggers to grant coins or GamePasses are rejected to prevent exploits.
+function MonetizationService._shopPurchase(player: Player, _request: table)
+	warn("[MonetizationService] Direct client purchase grant attempt rejected for player " .. tostring(player.UserId))
 	return false
 end
 
