@@ -169,13 +169,15 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 	if not ok then
 		return false
 	end
-	-- Update session cache
-	local cache = MonetizationService._inventoryCache[player.UserId]
-	if not cache then
-		cache = {}
-		MonetizationService._inventoryCache[player.UserId] = cache
+	-- Update session cache if player is still present
+	if Players:GetPlayerByUserId(player.UserId) ~= nil then
+		local cache = MonetizationService._inventoryCache[player.UserId]
+		if not cache then
+			cache = {}
+			MonetizationService._inventoryCache[player.UserId] = cache
+		end
+		cache.coins = (cache.coins or 0) + coins
 	end
-	cache.coins = (cache.coins or 0) + coins
 	return true
 end
 
@@ -322,8 +324,10 @@ function MonetizationService._onPlayerAdded(player: Player)
 	}
 	local prime = MonetizationService._inventoryCache[player.UserId]
 	if not prime then
-		prime = {}
+		prime = { coins = 0 }
 		MonetizationService._inventoryCache[player.UserId] = prime
+	else
+		prime.coins = prime.coins or 0
 	end
 
 	for passKey, passConfig in pairs(MonetizationConfig.GamePasses) do
@@ -337,6 +341,10 @@ function MonetizationService._onPlayerAdded(player: Player)
 				MonetizationService._passCache[player.UserId].gamePassOwned[passKey] = false
 			end
 		end
+	end
+
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return
 	end
 
 	-- If the player rejoins with pending grants (purchase completed but
@@ -535,71 +543,36 @@ end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
 -- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
+-- Server validates request shape and prompts native Roblox purchase modal.
+-- Purchases are granted strictly server-side via ProcessReceipt / PromptGamePassPurchaseFinished.
 function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
 	if not request then
-		return false
+		return
 	end
 
-	-- Developer Product purchase
+	-- Developer Product purchase prompt
 	if request.productKey then
 		local product = MonetizationConfig.Products[request.productKey]
 		if not product or product.id == 0 then
 			warn("[MonetizationService] invalid product key: " .. tostring(request.productKey))
-			return false
+			return
 		end
-
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
-		return true
+		MarketplaceService:PromptProductPurchase(player, product.id)
+		return
 	end
 
-	-- GamePass purchase
+	-- GamePass purchase prompt
 	if request.gamePassKey then
 		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
 		if not pass or pass.id == 0 then
 			warn("[MonetizationService] invalid gamepass key: " .. tostring(request.gamePassKey))
-			return false
+			return
 		end
-
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
-		return true
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		return
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
-	return false
 end
 
 -- Shutdown: disconnect all listeners.

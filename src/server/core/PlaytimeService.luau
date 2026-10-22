@@ -310,9 +310,22 @@ function PlaytimeService.shutdown()
 		PlaytimeService._heartbeatConn = nil
 	end
 	PlaytimeService._saving = false
-	for _, player in ipairs(Players:GetPlayers()) do
-		PlaytimeService._onPlayerRemoving(player)
+	local players = Players:GetPlayers()
+	if #players == 0 then
+		return
 	end
+	local runningThread = coroutine.running()
+	local remaining = #players
+	for _, player in ipairs(players) do
+		task.spawn(function()
+			PlaytimeService._onPlayerRemoving(player)
+			remaining -= 1
+			if remaining == 0 then
+				task.spawn(runningThread)
+			end
+		end)
+	end
+	coroutine.yield()
 end
 
 return PlaytimeService
