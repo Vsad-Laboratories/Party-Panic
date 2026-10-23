@@ -435,24 +435,43 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 end
 
 -- Currency formatter (logic, reads config ladder).
+-- DEC-008: Tiers K/M/B/T, 1 decimal below 10, integer >= 10, round half-up, bump tier if >= 1000, cap 100T+ for >= 1e14.
 function MonetizationService.formatCurrency(amount: number): string
+	if amount >= 1e14 then
+		return "100T+"
+	end
 	if amount < 1000 then
 		return tostring(math.floor(amount))
 	end
-	for i = #MonetizationConfig.CurrencyFormatter.thresholds, 1, -1 do
-		local tier = MonetizationConfig.CurrencyFormatter.thresholds[i]
+
+	local thresholds = MonetizationConfig.CurrencyFormatter.thresholds
+	for i = #thresholds, 1, -1 do
+		local tier = thresholds[i]
 		if amount >= tier.value then
 			local scaled = amount / tier.value
-			if scaled >= 100 then
-				return tostring(math.floor(scaled)) .. tier.suffix
-			elseif scaled >= 10 then
-				return string.format("%.1f", scaled):gsub("%.0$", "") .. tier.suffix
+			if scaled >= 10 then
+				local rounded = math.floor(scaled + 0.5)
+				if rounded >= 1000 and i < #thresholds then
+					local nextTier = thresholds[i + 1]
+					local nextScaled = amount / nextTier.value
+					if nextScaled >= 10 then
+						return tostring(math.floor(nextScaled + 0.5)) .. nextTier.suffix
+					else
+						return string.format("%.1f", math.floor(nextScaled * 10 + 0.5) / 10):gsub("%.0$", "")
+							.. nextTier.suffix
+					end
+				end
+				return tostring(rounded) .. tier.suffix
 			else
-				return string.format("%.2f", scaled):gsub("%.00$", "") .. tier.suffix
+				local rounded = math.floor(scaled * 10 + 0.5) / 10
+				if rounded >= 10 then
+					return tostring(math.floor(rounded)) .. tier.suffix
+				end
+				return string.format("%.1f", rounded):gsub("%.0$", "") .. tier.suffix
 			end
 		end
 	end
-	return tostring(amount)
+	return tostring(math.floor(amount))
 end
 
 -- Public: check if player owns a GamePass (session-cached).
