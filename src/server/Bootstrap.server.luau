@@ -6,14 +6,14 @@ local LobbyMachine = require(game.ServerScriptService.Server.core.LobbyMachine)
 local PlaytimeService = require(game.ServerScriptService.Server.core.PlaytimeService)
 local MonetizationService = require(game.ServerScriptService.Server.MonetizationService)
 
-local machine = LobbyMachine.new()
-machine:start()
+MonetizationService.init()
+PlaytimeService.start()
 
 local LobbyHub = require(game.ServerScriptService.Server.maps.LobbyHub)
 LobbyHub.init()
 
-PlaytimeService.start()
-MonetizationService.init()
+local machine = LobbyMachine.new()
+machine:start()
 
 -- Flush all player playtime + clean up lobby on server shutdown
 game:BindToClose(function()
