@@ -600,10 +600,10 @@ end
 function Lobby._showTooltip(self: Lobby, text: string, x: number, y: number, onLeft: boolean)
 	self._tooltip.Text = text
 	if onLeft then
-		self._tooltip.Position = UDim2.new(1, -x, 0.5, y)
+		self._tooltip.Position = UDim2.new(1, -x, RAIL_CENTRE_Y, y)
 		self._tooltip.AnchorPoint = Vector2.new(1, 0.5)
 	else
-		self._tooltip.Position = UDim2.fromOffset(x, y)
+		self._tooltip.Position = UDim2.new(0, x, RAIL_CENTRE_Y, y)
 		self._tooltip.AnchorPoint = Vector2.new(0, 0.5)
 	end
 	self._tooltip.Visible = true
