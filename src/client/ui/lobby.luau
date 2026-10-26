@@ -53,6 +53,20 @@ local MAX_PLAYERS = 12
 local TOOLTIP_DELAY = 0.12
 local TOOLTIP_TWEEN = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
+-- Header block ("PARTY PANIC" + status line) is a welcome banner, not a permanent HUD
+-- element (Operator playtest: it "stays permanently" and clutters the play area). It holds
+-- long enough to read, then fades out and is hidden. Text only — the banner owns no
+-- backdrop, so hiding the two labels leaves the HUD clean with nothing to repaint.
+local TITLE_FADE_DELAY = 4
+local TITLE_FADE_TWEEN = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+
+-- Press feedback (Operator: "buttons fire but feel dead"). A quick scale punch, not just
+-- a colour flash: AnchorPoint is (0.5, 0.5) so a shrunken Size keeps the same centre and
+-- the box never drifts off its icon or off the rail pitch.
+local PRESSED_SCALE = 0.9
+local PRESS_IN = TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local PRESS_OUT = TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
 type ButtonSpec = {
 	name: string,
 	icon: string,
@@ -68,6 +82,7 @@ type Lobby = {
 	_levelFill: Frame,
 	_progressLabel: TextLabel,
 	_coinCountLabel: TextLabel,
+	_titleBlock: { TextLabel },
 	_tooltip: TextLabel,
 	_tooltipTween: Tween?,
 	_tooltipTask: thread?,
@@ -81,6 +96,7 @@ type Lobby = {
 	_showTooltip: (Lobby, text: string, x: number, y: number, onLeft: boolean) -> (),
 	_hideTooltip: (Lobby) -> (),
 	_refreshScale: (Lobby) -> (),
+	_fadeTitleBlock: (Lobby) -> (),
 }
 
 -- UI helpers --------------------------------------------------------------
@@ -175,6 +191,19 @@ local function newButton(
 	button.ImageColor3 = tokens.palette.text
 	newUICorner(tokens.radii.lg).Parent = button
 
+	-- Press punch: shrink on press, spring back on release. The previous tween is
+	-- cancelled first so a fast tap cannot leave two tweens fighting over Size.
+	local fullSize = button.Size
+	local pressedSize = UDim2.fromOffset(tokens.controls.button * PRESSED_SCALE, tokens.controls.button * PRESSED_SCALE)
+	local sizeTween: Tween? = nil
+	local function punch(target: UDim2, info: TweenInfo)
+		if sizeTween then
+			sizeTween:Cancel()
+		end
+		sizeTween = TweenService:Create(button, info, { Size = target })
+		sizeTween:Play()
+	end
+
 	button.MouseEnter:Connect(function()
 		button.ImageColor3 = tokens.palette.canary
 		sounds.playHover()
@@ -185,17 +214,21 @@ local function newButton(
 	button.MouseLeave:Connect(function()
 		button.ImageColor3 = tokens.palette.text
 		lobby:_hideTooltip()
+		-- Release here too: a press that drags off the button never gets MouseButton1Up,
+		-- which would strand the button at PRESSED_SCALE.
+		punch(fullSize, PRESS_OUT)
+	end)
+	button.MouseButton1Down:Connect(function()
+		button.ImageColor3 = tokens.palette.pink
+		punch(pressedSize, PRESS_IN)
+	end)
+	button.MouseButton1Up:Connect(function()
+		button.ImageColor3 = tokens.palette.text
+		punch(fullSize, PRESS_OUT)
 	end)
 	button.Activated:Connect(function()
-		button.ImageColor3 = tokens.palette.pink
 		sounds.playClick()
 		lobby:_hideTooltip()
-		-- restore icon tint after the pop click
-		task.delay(0.1, function()
-			if button and button.Parent then
-				button.ImageColor3 = tokens.palette.text
-			end
-		end)
 	end)
 
 	return button
@@ -330,29 +363,33 @@ function Lobby._build(self: Lobby)
 	local bandOff = -c.edge * 2
 
 	-- Title + status (top-center). BuilderSans heading/body (docs/UX.md #1/#5).
-	newLabel(
-		"Title",
-		root,
-		"PARTY PANIC",
-		UDim2.new(0.5, 0, 0, topY + 56),
-		UDim2.new(bandW, bandOff, 0, 44),
-		tokens.textSizes.title,
-		p.accent,
-		Vector2.new(0.5, 0),
-		0.6,
-		tokens.fonts.heading
-	)
-	newLabel(
-		"Status",
-		root,
-		"Lobby — explore the hub!",
-		UDim2.new(0.5, 0, 0, topY + 124),
-		UDim2.new(bandW, bandOff, 0, 26),
-		tokens.textSizes.body,
-		tokens.palette.text,
-		Vector2.new(0.5, 0),
-		0.6
-	)
+	-- Both are collected into _titleBlock and faded out after TITLE_FADE_DELAY: the
+	-- banner is transient, the HUD below it is not.
+	self._titleBlock = {
+		newLabel(
+			"Title",
+			root,
+			"PARTY PANIC",
+			UDim2.new(0.5, 0, 0, topY + 56),
+			UDim2.new(bandW, bandOff, 0, 44),
+			tokens.textSizes.title,
+			p.accent,
+			Vector2.new(0.5, 0),
+			0.6,
+			tokens.fonts.heading
+		),
+		newLabel(
+			"Status",
+			root,
+			"Lobby — explore the hub!",
+			UDim2.new(0.5, 0, 0, topY + 124),
+			UDim2.new(bandW, bandOff, 0, 26),
+			tokens.textSizes.body,
+			tokens.palette.text,
+			Vector2.new(0.5, 0),
+			0.6
+		),
+	}
 
 	-- Player-count pill (top-left)
 	local playerPill = Instance.new("Frame")
@@ -381,12 +418,16 @@ function Lobby._build(self: Lobby)
 	-- RIGHT nav column
 	buildColumn(root, RIGHT_BUTTONS, true, self)
 
-	-- Bottom bar: LV badge | progress track | 0/100 pill | coin pill. ONE owner for the
-	-- row: a UIListLayout inside a bottom-anchored bar that auto-sizes to its content, so
-	-- the gaps are uniform by construction and the group stays centred at any width.
-	-- The old build hand-computed four centre offsets from a comment (0.225 / 0.426 /
-	-- 0.636 / 0.761) in screen fractions: the group was ~250px wide on a phone but ~540px
-	-- on 16:9 desktop, and any text change moved chips independently.
+	-- Bottom bar: THREE units in one row — level badge | XP progress + readout | coins.
+	-- The Operator playtest called this row "completely broken and mis-arranged": the
+	-- progress bar and its "0 / 100" readout were two separate chips, so the numbers
+	-- floated detached from the bar they describe and a 120px empty track read as a
+	-- broken element. The readout now lives INSIDE the progress unit, so the row is
+	-- level | progress+readout | coins and each unit explains itself.
+	--
+	-- One owner for the row: a UIListLayout inside a bottom-anchored bar that auto-sizes
+	-- to its content, so the gaps are uniform by construction and the group stays
+	-- centred at any width.
 	local bar = Instance.new("Frame")
 	bar.Name = "BottomBar"
 	bar.Parent = root
@@ -421,8 +462,8 @@ function Lobby._build(self: Lobby)
 		return icon
 	end
 
-	-- Chip chrome: one height, one padding, one icon+label rhythm for all four chips.
-	-- Width is the only content-shaped value (it follows the text the chip holds).
+	-- Chip chrome: one height, one padding, one icon+label rhythm for every unit in the
+	-- row. Width is the only content-shaped value (it follows what the unit holds).
 	local function newChip(name: string, width: number, order: number, iconName: string?, tint: Color3?): Frame
 		local chip = Instance.new("Frame")
 		chip.Name = name
@@ -440,30 +481,48 @@ function Lobby._build(self: Lobby)
 		return chip
 	end
 
+	local pad = tokens.spacing.sm
 	-- Label box after the icon slot: pad + icon + gap, mirrored on the right.
-	local chipLabelX = tokens.spacing.sm + c.chipIcon + tokens.spacing.sm
+	local chipLabelX = pad + c.chipIcon + pad
 	local chipLabelH = 28
 
-	-- Level badge: Level icon + "LV 1"
-	local levelBadge = newChip("LevelBadge", 96, 1, "Level", p.accent)
+	-- Unit 1 — level badge. Text only: the Level icon asset is still
+	-- rbxassetid://0 (no id in assets/IDs.txt), and an empty 24px slot in a live HUD
+	-- reads as a broken element, which is the exact complaint this pass fixes. The chip
+	-- stays text-shaped, so re-adding the icon is one argument to newChip plus a width.
+	local levelBadge = newChip("LevelBadge", 56, 1)
 
 	self._levelNumberLabel = newLabel(
 		"LevelNumber",
 		levelBadge,
 		"LV 1",
-		UDim2.fromOffset(chipLabelX, 0),
-		UDim2.fromOffset(96 - chipLabelX - tokens.spacing.sm, chipLabelH),
+		UDim2.fromOffset(pad, 0),
+		UDim2.fromOffset(56 - pad * 2, chipLabelH),
 		tokens.textSizes.caption,
 		tokens.palette.text,
 		Vector2.new(0, 0.5)
 	)
 
-	-- Level progress track + fill (compact, palette teal fill)
-	local levelTrack = newChip("LevelTrack", 120, 2)
+	-- Unit 2 — XP progress AND its readout, one chip. The bar sits left, the numbers
+	-- right, on the same baseline at the same height: the readout is always beside the
+	-- bar it quantifies, instead of in a pill of its own.
+	local XP_W, BAR_W, BAR_H = 176, 56, 24
+	local xpChip = newChip("XpProgress", XP_W, 2)
+
+	local xpTrack = Instance.new("Frame")
+	xpTrack.Name = "Track"
+	xpTrack.Parent = xpChip
+	xpTrack.AnchorPoint = Vector2.new(0, 0.5)
+	xpTrack.Position = UDim2.fromOffset(pad, 0)
+	xpTrack.Size = UDim2.fromOffset(BAR_W, BAR_H)
+	xpTrack.BackgroundColor3 = p.navy
+	xpTrack.BackgroundTransparency = 0.35
+	xpTrack.BorderSizePixel = 0
+	newUICorner(tokens.radii.full).Parent = xpTrack
 
 	self._levelFill = Instance.new("Frame")
 	self._levelFill.Name = "LevelFill"
-	self._levelFill.Parent = levelTrack
+	self._levelFill.Parent = xpTrack
 	self._levelFill.Size = UDim2.fromScale(0, 1)
 	self._levelFill.Position = UDim2.fromScale(0, 0.5)
 	self._levelFill.AnchorPoint = Vector2.new(0, 0.5)
@@ -472,29 +531,26 @@ function Lobby._build(self: Lobby)
 	-- Pill radius to match the track: a 6px-cornered fill pokes out of a full-radius track.
 	newUICorner(tokens.radii.full).Parent = self._levelFill
 
-	-- Progress text "0 / 100" (no icon: the label is the whole chip)
-	local progressPill = newChip("ProgressPill", 88, 3)
-
 	self._progressLabel = newLabel(
 		"Progress",
-		progressPill,
+		xpChip,
 		"0 / 100",
-		UDim2.fromOffset(tokens.spacing.sm, 0),
-		UDim2.fromOffset(88 - tokens.spacing.sm * 2, chipLabelH),
+		UDim2.fromOffset(pad + BAR_W + pad, 0),
+		UDim2.fromOffset(XP_W - (pad + BAR_W + pad) - pad, chipLabelH),
 		tokens.textSizes.caption,
 		tokens.palette.text,
 		Vector2.new(0, 0.5)
 	)
 
-	-- Compact coin count: Coin icon (icons.luau) + number
-	local coinFrame = newChip("CoinCount", 92, 4, "Coin", tokens.palette.canary)
+	-- Unit 3 — coin counter. Icon + number, same slot and rhythm as the other units.
+	local coinFrame = newChip("CoinCount", 92, 3, "Coin", tokens.palette.canary)
 
 	self._coinCountLabel = newLabel(
 		"Count",
 		coinFrame,
 		"0",
 		UDim2.fromOffset(chipLabelX, 0),
-		UDim2.fromOffset(92 - chipLabelX - tokens.spacing.sm, chipLabelH),
+		UDim2.fromOffset(92 - chipLabelX - pad, chipLabelH),
 		tokens.textSizes.caption,
 		tokens.palette.text,
 		Vector2.new(0, 0.5)
@@ -526,6 +582,26 @@ function Lobby._build(self: Lobby)
 	-- 14px floor, not 6: the tooltip is the ONLY name an icon-only button has
 	-- (docs/UX.md #5/#29), so it must clear the readable minimum.
 	newTextSizeConstraint(14, self._tooltip)
+
+	self:_fadeTitleBlock()
+end
+
+-- Welcome banner lifetime: hold long enough to read, then fade and hide. Text and stroke
+-- both fade, otherwise the dark navy stroke lingers after the text has gone.
+function Lobby._fadeTitleBlock(self: Lobby)
+	task.delay(TITLE_FADE_DELAY, function()
+		for _, label in self._titleBlock do
+			TweenService:Create(label, TITLE_FADE_TWEEN, {
+				TextTransparency = 1,
+				TextStrokeTransparency = 1,
+			}):Play()
+		end
+		task.delay(TITLE_FADE_TWEEN.Time, function()
+			for _, label in self._titleBlock do
+				label.Visible = false
+			end
+		end)
+	end)
 end
 
 function Lobby._connect(self: Lobby)
