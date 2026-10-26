@@ -276,7 +276,7 @@ function MonetizationService.addLockerSlots(player: Player, count: number): bool
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
-	cache.lockerSlots = count
+	cache.lockerSlots = (cache.lockerSlots or 0) + count
 	return true
 end
 
@@ -345,7 +345,10 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	if not prime.loaded then
+		prime.coins = (prime.coins or 0) + (pending and pending.coins or 0)
+		prime.loaded = true
+	end
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
@@ -467,7 +470,7 @@ end
 -- Public: get player's coin count from session cache (lazy prime on miss).
 function MonetizationService.getCoins(player: Player): number
 	local cache = MonetizationService._inventoryCache[player.UserId]
-	if cache and cache.coins ~= nil then
+	if cache and cache.loaded and cache.coins ~= nil then
 		return cache.coins
 	end
 	-- Cache miss: lazy prime from DataStore
@@ -482,6 +485,7 @@ function MonetizationService.getCoins(player: Player): number
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
 	cache.coins = coins
+	cache.loaded = true
 	return coins
 end
 
@@ -513,33 +517,36 @@ function MonetizationService.init()
 			end
 		end)
 	)
+
+	if not MonetizationService._shopPurchaseEvent then
+		MonetizationService._shopPurchaseEvent = ReplicatedStorage:FindFirstChild("ShopPurchase")
+		if not MonetizationService._shopPurchaseEvent then
+			MonetizationService._shopPurchaseEvent = Instance.new("RemoteEvent")
+			MonetizationService._shopPurchaseEvent.Name = "ShopPurchase"
+			MonetizationService._shopPurchaseEvent.Parent = ReplicatedStorage
+		end
+	end
+
+	table.insert(
+		MonetizationService._playerConnections,
+		MonetizationService._shopPurchaseEvent.OnServerEvent:Connect(function(player, request)
+			if typeof(request) ~= "table" then
+				return
+			end
+			MonetizationService._shopPurchase(player, request)
+		end)
+	)
+
 	print("[MonetizationService] started — ProcessReceipt + GamePass cache armed")
 end
 
--- ShopPurchase RemoteEvent (replicated to clients, handled server-authoritatively).
-if not MonetizationService._shopPurchaseEvent then
-	MonetizationService._shopPurchaseEvent = ReplicatedStorage:FindFirstChild("ShopPurchase")
-	if not MonetizationService._shopPurchaseEvent then
-		MonetizationService._shopPurchaseEvent = Instance.new("RemoteEvent")
-		MonetizationService._shopPurchaseEvent.Name = "ShopPurchase"
-		MonetizationService._shopPurchaseEvent.Parent = ReplicatedStorage
-	end
-end
-
-MonetizationService._shopPurchaseEvent.OnServerEvent:Connect(function(player, request)
-	if typeof(request) ~= "table" then
-		return
-	end
-	MonetizationService._shopPurchase(player, request)
-end)
-
 -- ShopPurchase: server-authoritative RemoteEvent handler.
 -- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
+-- Server prompts the purchase via MarketplaceService. Roblox manages actual payment
+-- and triggers ProcessReceipt (products) or PromptGamePassPurchaseFinished (gamepasses).
 function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
 	if not request then
-		return false
+		return
 	end
 
 	-- Developer Product purchase
@@ -547,26 +554,10 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 		local product = MonetizationConfig.Products[request.productKey]
 		if not product or product.id == 0 then
 			warn("[MonetizationService] invalid product key: " .. tostring(request.productKey))
-			return false
+			return
 		end
-
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
-		return true
+		MarketplaceService:PromptProductPurchase(player, product.id)
+		return
 	end
 
 	-- GamePass purchase
@@ -574,32 +565,13 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
 		if not pass or pass.id == 0 then
 			warn("[MonetizationService] invalid gamepass key: " .. tostring(request.gamePassKey))
-			return false
+			return
 		end
-
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
-		return true
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		return
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
-	return false
 end
 
 -- Shutdown: disconnect all listeners.
