@@ -175,6 +175,10 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
+	if cache.coins == nil then
+		MonetizationService.getCoins(player)
+		cache = MonetizationService._inventoryCache[player.UserId]
+	end
 	cache.coins = (cache.coins or 0) + coins
 	return true
 end
@@ -381,7 +385,7 @@ end
 -- (roblox-monetization skill: "Cache a successful result when appropriate, but
 -- provide an invalidation or refresh path for purchases made during the session.")
 function MonetizationService._onGamePassPurchaseFinished(player: Player, gamePassId: number, wasPurchased: boolean)
-	if not wasPurchased then
+	if not wasPurchased or not player or Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
 	for passKey, passConfig in pairs(MonetizationConfig.GamePasses) do
@@ -536,69 +540,10 @@ end)
 -- ShopPurchase: server-authoritative RemoteEvent handler.
 -- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
 -- Server validates everything: price from config, idempotent grants, receipt record.
-function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
-	if not request then
-		return false
-	end
-
-	-- Developer Product purchase
-	if request.productKey then
-		local product = MonetizationConfig.Products[request.productKey]
-		if not product or product.id == 0 then
-			warn("[MonetizationService] invalid product key: " .. tostring(request.productKey))
-			return false
-		end
-
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
-		return true
-	end
-
-	-- GamePass purchase
-	if request.gamePassKey then
-		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
-		if not pass or pass.id == 0 then
-			warn("[MonetizationService] invalid gamepass key: " .. tostring(request.gamePassKey))
-			return false
-		end
-
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
-		return true
-	end
-
-	-- Unknown request shape
-	warn("[MonetizationService] unknown shop request shape")
+function MonetizationService._shopPurchase(player: Player, _request: table)
+	-- Free grant exploit vector removed: client cannot directly trigger grants via RemoteEvent.
+	-- All monetization purchases must go through MarketplaceService (ProcessReceipt / PromptGamePassPurchaseFinished).
+	warn("[MonetizationService] Direct client purchase request rejected for player " .. tostring(player.UserId))
 	return false
 end
 
