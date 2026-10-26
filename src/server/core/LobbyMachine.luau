@@ -25,6 +25,9 @@ function LobbyMachine.new()
 end
 
 function LobbyMachine:_bindPlayers()
+	if #self._connections > 0 then
+		return
+	end
 	for _, player in ipairs(Players:GetPlayers()) do
 		table.insert(self.players, player)
 		Placements.placePlayer(player)

@@ -76,9 +76,13 @@ local function loadAsset(assetId, parent, position, scale)
 		end
 	end
 	if scale then
-		for _, descendant in ipairs(asset:GetDescendants()) do
-			if descendant:IsA("BasePart") then
-				descendant.Size = descendant.Size * scale
+		if asset:IsA("Model") and typeof(asset.ScaleTo) == "function" then
+			asset:ScaleTo(scale)
+		else
+			for _, descendant in ipairs(asset:GetDescendants()) do
+				if descendant:IsA("BasePart") then
+					descendant.Size = descendant.Size * scale
+				end
 			end
 		end
 	end
