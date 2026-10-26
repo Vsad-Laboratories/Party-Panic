@@ -539,25 +539,29 @@ function Lobby._connect(self: Lobby)
 		end)
 	end
 
-	local function onChildAdded(child: Instance)
-		if child.Name == "LobbyStateEvent" and child:IsA("RemoteEvent") then
-			bind(child)
-			if self._childAddedConn then
-				self._childAddedConn:Disconnect()
-				self._childAddedConn = nil
-			end
-		end
-	end
-
 	local existing = ReplicatedStorage:FindFirstChild("LobbyStateEvent")
 	if existing ~= nil and existing:IsA("RemoteEvent") then
 		bind(existing)
 	else
-		self._childAddedConn = ReplicatedStorage.ChildAdded:Connect(onChildAdded)
+		local conn
+		conn = ReplicatedStorage.ChildAdded:Connect(function(child: Instance)
+			if child.Name == "LobbyStateEvent" and child:IsA("RemoteEvent") then
+				bind(child)
+				if conn then
+					conn:Disconnect()
+					conn = nil
+					self._childAddedConn = nil
+				end
+			end
+		end)
+		self._childAddedConn = conn
 	end
 end
 
 function Lobby._onPayload(self: Lobby, payload: LobbyPayload)
+	if typeof(payload) ~= "table" or typeof(payload.players) ~= "table" then
+		return
+	end
 	self._playerCountLabel.Text = #payload.players .. " / " .. MAX_PLAYERS
 
 	if payload.level then
