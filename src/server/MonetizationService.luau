@@ -169,6 +169,9 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 	if not ok then
 		return false
 	end
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return true
+	end
 	-- Update session cache
 	local cache = MonetizationService._inventoryCache[player.UserId]
 	if not cache then
@@ -208,6 +211,9 @@ function MonetizationService.unlockCosmetic(player: Player, cosmeticId: string):
 				.. tostring(err)
 		)
 		return false
+	end
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return true
 	end
 	-- Update session cache for ownedCosmetics
 	local cache = MonetizationService._inventoryCache[player.UserId]
@@ -252,6 +258,9 @@ function MonetizationService.unlockEmote(player: Player, emoteId: string): boole
 		)
 		return false
 	end
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return true
+	end
 	-- Update session cache for ownedEmotes
 	local cache = MonetizationService._inventoryCache[player.UserId]
 	if not cache then
@@ -269,6 +278,9 @@ function MonetizationService.addLockerSlots(player: Player, count: number): bool
 	local ok = MonetizationService._saveInventoryField(player.UserId, "lockerSlots", count)
 	if not ok then
 		return false
+	end
+	if Players:GetPlayerByUserId(player.UserId) == nil then
+		return true
 	end
 	-- Update session cache
 	local cache = MonetizationService._inventoryCache[player.UserId]
@@ -434,8 +446,11 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
--- Currency formatter (logic, reads config ladder).
+-- Currency formatter (logic, reads config ladder). Matches DEC-008.
 function MonetizationService.formatCurrency(amount: number): string
+	if amount >= 1e14 then
+		return "100T+"
+	end
 	if amount < 1000 then
 		return tostring(math.floor(amount))
 	end
@@ -443,16 +458,14 @@ function MonetizationService.formatCurrency(amount: number): string
 		local tier = MonetizationConfig.CurrencyFormatter.thresholds[i]
 		if amount >= tier.value then
 			local scaled = amount / tier.value
-			if scaled >= 100 then
-				return tostring(math.floor(scaled)) .. tier.suffix
-			elseif scaled >= 10 then
-				return string.format("%.1f", scaled):gsub("%.0$", "") .. tier.suffix
+			if scaled >= 10 then
+				return tostring(math.floor(scaled + 0.5)) .. tier.suffix
 			else
-				return string.format("%.2f", scaled):gsub("%.00$", "") .. tier.suffix
+				return string.format("%.1f", math.floor(scaled * 10 + 0.5) / 10):gsub("%.0$", "") .. tier.suffix
 			end
 		end
 	end
-	return tostring(amount)
+	return tostring(math.floor(amount))
 end
 
 -- Public: check if player owns a GamePass (session-cached).
@@ -534,11 +547,9 @@ MonetizationService._shopPurchaseEvent.OnServerEvent:Connect(function(player, re
 end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
--- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
+-- Prompts official purchase flows via MarketplaceService (server authority).
 function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
-	if not request then
+	if typeof(request) ~= "table" then
 		return false
 	end
 
@@ -550,22 +561,7 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 			return false
 		end
 
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
+		MarketplaceService:PromptProductPurchase(player, product.id)
 		return true
 	end
 
@@ -577,27 +573,10 @@ function MonetizationService._shopPurchase(player: Player, request: table)
 			return false
 		end
 
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
 		return true
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
 	return false
 end
