@@ -145,7 +145,7 @@ function PlaytimeService._onPlayerAdded(player: Player)
 		return
 	end
 	PlaytimeService._loadedBase[player.UserId] = loaded or 0
-	PlaytimeService._sessionDelta[player.UserId] = 0
+	PlaytimeService._sessionDelta[player.UserId] = PlaytimeService._sessionDelta[player.UserId] or 0
 	PlaytimeService._sessionStart[player.UserId] = tick()
 end
 
