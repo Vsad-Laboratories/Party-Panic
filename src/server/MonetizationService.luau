@@ -170,12 +170,13 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 		return false
 	end
 	-- Update session cache
+	local currentCoins = MonetizationService.getCoins(player)
 	local cache = MonetizationService._inventoryCache[player.UserId]
 	if not cache then
 		cache = {}
 		MonetizationService._inventoryCache[player.UserId] = cache
 	end
-	cache.coins = (cache.coins or 0) + coins
+	cache.coins = currentCoins + coins
 	return true
 end
 
@@ -345,7 +346,10 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if cache then
+		cache.coins = pending.coins or 0
+	end
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
@@ -386,10 +390,15 @@ function MonetizationService._onGamePassPurchaseFinished(player: Player, gamePas
 	end
 	for passKey, passConfig in pairs(MonetizationConfig.GamePasses) do
 		if passConfig.id == gamePassId then
-			if not MonetizationService._passCache[player.UserId] then
-				MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
+			local cache = MonetizationService._passCache[player.UserId]
+			if not cache then
+				cache = { gamePassOwned = {} }
+				MonetizationService._passCache[player.UserId] = cache
 			end
-			MonetizationService._passCache[player.UserId].gamePassOwned[passKey] = true
+			if not cache.gamePassOwned then
+				cache.gamePassOwned = {}
+			end
+			cache.gamePassOwned[passKey] = true
 		end
 	end
 end
@@ -535,71 +544,40 @@ end)
 
 -- ShopPurchase: server-authoritative RemoteEvent handler.
 -- Client sends { productKey = "DP_Starter" } or { gamePassKey = "GP_VIP" }.
--- Server validates everything: price from config, idempotent grants, receipt record.
-function MonetizationService._shopPurchase(player: Player, request: table)
-	-- Validate request type
-	if not request then
-		return false
+-- Prompts official Roblox purchase dialogs via MarketplaceService.
+-- Real grants occur ONLY via ProcessReceipt (products) and PromptGamePassPurchaseFinished (gamepasses).
+function MonetizationService._shopPurchase(player: Player, request: any)
+	if typeof(request) ~= "table" then
+		return
 	end
 
-	-- Developer Product purchase
+	-- Developer Product purchase prompt
 	if request.productKey then
 		local product = MonetizationConfig.Products[request.productKey]
 		if not product or product.id == 0 then
 			warn("[MonetizationService] invalid product key: " .. tostring(request.productKey))
-			return false
+			return
 		end
-
-		-- Idempotency check via PurchaseId
-		-- (The actual PurchaseId comes from the client's prompt context;
-		-- for developer products, we rely on ProcessReceipt idempotency.)
-		-- Grant via the existing atomic path.
-		local granted = MonetizationService.grantCoins(player, product.grants.coins, "shop")
-		if not granted then
-			return false
-		end
-
-		-- Record receipt for idempotency
-		-- We use a shop-specific receipt key that includes product + player + timestamp
-		local success = MonetizationService._recordReceipt("shop_" .. player.UserId .. "_" .. request.productKey)
-		if not success then
-			return false
-		end
-
-		return true
+		pcall(function()
+			MarketplaceService:PromptProductPurchase(player, product.id)
+		end)
+		return
 	end
 
-	-- GamePass purchase
+	-- GamePass purchase prompt
 	if request.gamePassKey then
 		local pass = MonetizationConfig.GamePasses[request.gamePassKey]
 		if not pass or pass.id == 0 then
 			warn("[MonetizationService] invalid gamepass key: " .. tostring(request.gamePassKey))
-			return false
+			return
 		end
-
-		-- Check if player already owns it
-		if MonetizationService.hasGamePass(player, request.gamePassKey) then
-			return true -- already owned
-		end
-
-		-- Grant the game pass: update session cache
-		if not MonetizationService._passCache[player.UserId] then
-			MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
-		end
-		MonetizationService._passCache[player.UserId].gamePassOwned[request.gamePassKey] = true
-
-		-- Record receipt
-		local success = MonetizationService._recordReceipt("gp_" .. player.UserId .. "_" .. request.gamePassKey)
-		if not success then
-			return false
-		end
-
-		return true
+		pcall(function()
+			MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		end)
+		return
 	end
 
-	-- Unknown request shape
 	warn("[MonetizationService] unknown shop request shape")
-	return false
 end
 
 -- Shutdown: disconnect all listeners.
