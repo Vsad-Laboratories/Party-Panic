@@ -122,7 +122,7 @@ function PlaytimeService._savePlayer(userId: number, delta: number): boolean
 end
 
 function PlaytimeService._getSessionSeconds(userId: number): number
-	if PlaytimeService._sessionStart[userId] == nil then
+	if PlaytimeService._sessionStart[userId] == nil or PlaytimeService._sessionStart[userId] == 0 then
 		return 0
 	end
 	return tick() - PlaytimeService._sessionStart[userId]
@@ -136,12 +136,15 @@ function PlaytimeService._onPlayerAdded(player: Player)
 	if PlaytimeService._sessionStart[player.UserId] ~= nil then
 		return
 	end
+	PlaytimeService._sessionStart[player.UserId] = 0 -- sentinel to guard against concurrent load
 	local ok, loaded = PlaytimeService._loadPlayer(player.UserId)
 	if not ok then
 		warn("[PlaytimeService] player " .. player.Name .. " skipped (load error); persistence disarmed for session")
+		PlaytimeService._sessionStart[player.UserId] = nil
 		return
 	end
 	if Players:GetPlayerByUserId(player.UserId) == nil then
+		PlaytimeService._sessionStart[player.UserId] = nil
 		return
 	end
 	PlaytimeService._loadedBase[player.UserId] = loaded or 0
