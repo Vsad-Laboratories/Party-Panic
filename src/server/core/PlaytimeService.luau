@@ -31,6 +31,7 @@ PlaytimeService._saveInFlight = {}
 PlaytimeService._pendingLeave = {}
 PlaytimeService._tickAccumulator = 0
 PlaytimeService._heartbeatConn = nil
+PlaytimeService._connections = {}
 PlaytimeService._saving = false
 
 function PlaytimeService._initDataStore()
@@ -286,12 +287,18 @@ end
 
 function PlaytimeService.start()
 	PlaytimeService._initDataStore()
-	Players.PlayerAdded:Connect(function(player)
-		PlaytimeService._onPlayerAdded(player)
-	end)
-	Players.PlayerRemoving:Connect(function(player)
-		PlaytimeService._onPlayerRemoving(player)
-	end)
+	table.insert(
+		PlaytimeService._connections,
+		Players.PlayerAdded:Connect(function(player)
+			PlaytimeService._onPlayerAdded(player)
+		end)
+	)
+	table.insert(
+		PlaytimeService._connections,
+		Players.PlayerRemoving:Connect(function(player)
+			PlaytimeService._onPlayerRemoving(player)
+		end)
+	)
 	for _, player in ipairs(Players:GetPlayers()) do
 		task.spawn(function()
 			PlaytimeService._onPlayerAdded(player)
@@ -309,6 +316,10 @@ function PlaytimeService.shutdown()
 		PlaytimeService._heartbeatConn:Disconnect()
 		PlaytimeService._heartbeatConn = nil
 	end
+	for _, conn in ipairs(PlaytimeService._connections) do
+		conn:Disconnect()
+	end
+	PlaytimeService._connections = {}
 	PlaytimeService._saving = false
 	for _, player in ipairs(Players:GetPlayers()) do
 		PlaytimeService._onPlayerRemoving(player)
