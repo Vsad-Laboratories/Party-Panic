@@ -75,10 +75,23 @@ local function loadAsset(assetId, parent, position, scale)
 			descendant:Destroy()
 		end
 	end
-	if scale then
-		for _, descendant in ipairs(asset:GetDescendants()) do
-			if descendant:IsA("BasePart") then
-				descendant.Size = descendant.Size * scale
+	if scale and scale ~= 1 then
+		if asset:IsA("Model") then
+			local okScale = pcall(function()
+				asset:ScaleTo(scale)
+			end)
+			if not okScale then
+				for _, descendant in ipairs(asset:GetDescendants()) do
+					if descendant:IsA("BasePart") then
+						descendant.Size = descendant.Size * scale
+					end
+				end
+			end
+		else
+			for _, descendant in ipairs(asset:GetDescendants()) do
+				if descendant:IsA("BasePart") then
+					descendant.Size = descendant.Size * scale
+				end
 			end
 		end
 	end
