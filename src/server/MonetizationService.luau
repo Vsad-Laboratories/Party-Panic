@@ -169,12 +169,11 @@ function MonetizationService.grantCoins(player: Player, amount: number, _source:
 		return false
 	end
 	-- Update session cache
+	local currentCoins = MonetizationService.getCoins(player)
 	local cache = MonetizationService._inventoryCache[player.UserId]
-	if not cache then
-		cache = {}
-		MonetizationService._inventoryCache[player.UserId] = cache
+	if cache then
+		cache.coins = currentCoins + coins
 	end
-	cache.coins = (cache.coins or 0) + coins
 	return true
 end
 
@@ -344,7 +343,10 @@ function MonetizationService._onPlayerAdded(player: Player)
 	if Players:GetPlayerByUserId(player.UserId) == nil then
 		return
 	end
-	prime.coins = pending.coins or 0
+	local cache = MonetizationService._inventoryCache[player.UserId]
+	if cache then
+		cache.coins = (pending.coins or 0) + (cache.coins or 0)
+	end
 
 	if pending and pending.pendingGrants then
 		for _, grant in ipairs(pending.pendingGrants) do
@@ -387,6 +389,9 @@ function MonetizationService._onGamePassPurchaseFinished(player: Player, gamePas
 		if passConfig.id == gamePassId then
 			if not MonetizationService._passCache[player.UserId] then
 				MonetizationService._passCache[player.UserId] = { gamePassOwned = {} }
+			end
+			if not MonetizationService._passCache[player.UserId].gamePassOwned then
+				MonetizationService._passCache[player.UserId].gamePassOwned = {}
 			end
 			MonetizationService._passCache[player.UserId].gamePassOwned[passKey] = true
 		end
